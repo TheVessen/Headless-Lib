@@ -12,7 +12,7 @@ using Grasshopper.Kernel.Types;
 using System.Linq;
 using Grasshopper.Kernel.Parameters;
 
-namespace Headless.TextCurve
+namespace Headless.Components.TextCurve
 {
     public class HeadlessTextToCurve : GH_Component
     {
@@ -143,7 +143,7 @@ namespace Headless.TextCurve
             //Set the document font
             Font documentFont;
             //Gets all doc fonts
-            Font[] fs = Rhino.DocObjects.Font.InstalledFonts(font);
+            Font[] fs = Font.InstalledFonts(font);
 
             if (fs.Length != 0)
             {
