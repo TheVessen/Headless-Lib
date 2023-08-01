@@ -30,11 +30,11 @@ We welcome contributions from the community! Whether you're fixing bugs, adding 
 
 ## License
 
-This project is licensed under the MIT License - see the [[LICENSE.md](link-to-license-file)](https://github.com/TheVessen/Headless-Lib/blob/master/LICENSE.txt) file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/TheVessen/Headless-Lib/blob/master/LICENSE.txt) file for details.
 
 ## Contact
 
-For questions, feedback, or support, please [[create an issue](link-to-issues-page)](https://github.com/TheVessen/Headless-Lib/issues) on GitHub or contact the project maintainers directly.
+For questions, feedback, or support, please [create an issue](https://github.com/TheVessen/Headless-Lib/issues) on GitHub or contact the project maintainers directly.
 
 ## Acknowledgments
 
