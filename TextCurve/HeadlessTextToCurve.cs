@@ -31,40 +31,47 @@ namespace Headless.TextCurve
         }
 
 
+        //public override void DrawViewportWires(IGH_PreviewArgs args)
+        //{
+        //    //base.DrawViewportMeshes(args);
+        //}
+        public override void DrawViewportMeshes(IGH_PreviewArgs args)
+        {
+            //base.DrawViewportMeshes(args);
+        }
+
+
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("Text", "T", "The text that should be dispayed", GH_ParamAccess.item, "Default");
+            pManager.AddTextParameter("Text", "T", "The text that should be displayed", GH_ParamAccess.item);
+            pManager.AddPlaneParameter("Plane", "P", "Plane of the text default is XY", GH_ParamAccess.item);
             pManager.AddNumberParameter("Scale", "S", "Scale of the font", GH_ParamAccess.item, 10);
-            pManager.AddPointParameter("Location", "L", "Location of the text", GH_ParamAccess.item, new Point3d(0, 0, 0));
-            pManager.AddPlaneParameter("Plane", "P", "Plane of the text default is XY", GH_ParamAccess.item, Plane.WorldXY);
 
             //Setting up the font
-            pManager.AddTextParameter("Font", "F", "Custom installed font => Make sure the font of your choosing is installed of the maching that this component is running on otherwhise a generic font will be used", GH_ParamAccess.item, "Arial");
+            pManager.AddTextParameter("Font", "F", "Custom installed font => Make sure the font of your choosing is installed of the matching that this component is running on otherwise a generic font will be used", GH_ParamAccess.item, "Arial");
 
 
             //Text alignment
-            Param_Integer justification = new Param_Integer();
+            Param_Integer hzParam = new Param_Integer();
 
-            justification.AddNamedValue("Left", 0);
-            justification.AddNamedValue("Center", 1);
-            justification.AddNamedValue("Right", 2);
-            justification.PersistentData.Append(new GH_Integer(0));
+            hzParam.AddNamedValue("Left", 0);
+            hzParam.AddNamedValue("Center", 1);
+            hzParam.AddNamedValue("Right", 2);
+            hzParam.PersistentData.Append(new GH_Integer(1));
 
-            pManager.AddParameter(justification, "Text Justification", "TJ", "List of text justification options", GH_ParamAccess.item);
+            pManager.AddParameter(hzParam, "Horizontal Alignment", "HA", "Sets the horizontal alignment", GH_ParamAccess.item);
 
-            Param_Integer ajudtParam = new Param_Integer();
+            Param_Integer vertParam = new Param_Integer();
 
-            ajudtParam.AddNamedValue("Top", 0);
-            ajudtParam.AddNamedValue("Middle", 1);
-            ajudtParam.AddNamedValue("Bottom", 2);
-            ajudtParam.Name = "Text Alignment";
-            ajudtParam.NickName = "TA";
-            ajudtParam.PersistentData.Append(new GH_Integer(0));
+            vertParam.AddNamedValue("Top", 0);
+            vertParam.AddNamedValue("Middle", 1);
+            vertParam.AddNamedValue("Bottom", 2);
+            vertParam.PersistentData.Append(new GH_Integer(1));
 
-            pManager.AddParameter(ajudtParam, "Text Alignment", "TA", "Set of adjustment options" , GH_ParamAccess.item);
+            pManager.AddParameter(vertParam, "Vertical Alignment", "VA", "Sets the vertical alignment", GH_ParamAccess.item);
 
         }
 
@@ -84,49 +91,56 @@ namespace Headless.TextCurve
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             // Declare a variable for each the inputs
-            string text = "Default";
+            string text = string.Empty;
             double scale = 10;
-            Point3d location = Point3d.Unset;
             Plane plane = Plane.WorldXY;
             string font = "Arial";
-            int justification = 0;
-            int alignment = 0;
+            int horzAlign = 0;
+            int vertAlign = 0;
 
             // Retrieve each of the inputs. If any are unsuccessful, return.
             if (!DA.GetData(0, ref text)) { return; }
-            if (!DA.GetData(1, ref scale)) { return; }
-            if (!DA.GetData(2, ref location)) { return; }
-            if (!DA.GetData(3, ref plane)) { return; }
-            if (!DA.GetData(4, ref font)) { return; }
-            if (!DA.GetData(5, ref justification)) { return; }
-            if (!DA.GetData(6, ref alignment)) { return; }
+            if (!DA.GetData(1, ref plane)) { return; }
+            if (!DA.GetData(2, ref scale)) { return; }
+            if (!DA.GetData(3, ref font)) { return; }
+            if (!DA.GetData(4, ref horzAlign)) { return; }
+            if (!DA.GetData(5, ref vertAlign)) { return; }
 
 
-            //Options for justification
-            TextJustification[] textJustification = new TextJustification[] {
-                TextJustification.Left,
-                TextJustification.Center,
-                TextJustification.Right
+            //Options for horizontal alignment
+            TextHorizontalAlignment[] textHorizontalAlignment = new TextHorizontalAlignment[] {
+                TextHorizontalAlignment.Right,
+                TextHorizontalAlignment.Center,
+                TextHorizontalAlignment.Left
             };
 
-            //Options for alignment
+            //Options for vertical alignment
             TextVerticalAlignment[] textVerticalAlignment = new TextVerticalAlignment[] {
                 TextVerticalAlignment.Bottom,
                 TextVerticalAlignment.Middle,
                 TextVerticalAlignment.Top
             };
 
-
             //Create a headless doc
             var doc = RhinoDoc.CreateHeadless(null);
 
             //Create an custom dimstyle
-            var id = doc.DimStyles.Add("Base");
+            DimensionStyle style = new DimensionStyle();
+            style.TextHeight = scale;
+            style.TextHorizontalAlignment = textHorizontalAlignment[horzAlign];
+            style.TextVerticalAlignment = textVerticalAlignment[vertAlign];
 
-            //Sets the base location for the plane
-            plane.Origin = location;
+            //Copy plane since if plane is directly applied the text is not properly aligned
+            Plane orientationPlane = new Plane(plane);
 
-            //Initalizes a doc font
+            //Plane to set the basic location
+            plane = Plane.WorldXY;
+            plane.Origin = orientationPlane.Origin;
+
+            //Create the transform for transforming the curves in the end
+            Transform transform = Transform.PlaneToPlane(plane, orientationPlane);
+
+            //Set the document font
             Font documentFont;
             //Gets all doc fonts
             Font[] fs = Rhino.DocObjects.Font.InstalledFonts(font);
@@ -138,49 +152,28 @@ namespace Headless.TextCurve
             }
             else
             {
-                //If the custom font cant be found suplement it with a base font => Arial
-                documentFont = doc.DimStyles[id].Font;
+                //If the custom font cant be found replace it with a base font => Arial
+                documentFont = doc.DimStyles[0].Font;
             }
 
-            //Create and setup the text entity
-            var te = new TextEntity();
-            te.PlainText = text;
-            te.Font = documentFont;
-            te.Plane = plane;
-            te.Justification = textJustification[justification];
-            te.TextVerticalAlignment = textVerticalAlignment[alignment];
+            //Set the font to the dimstyle
+            style.Font = documentFont;
 
-            //Get bbox for justification
-            BoundingBox bbox = te.GetBoundingBox(true);
-
-            //Adjust the plane to fit justification
-            Line[] boxLine = bbox.GetEdges();
-            Point3d boxCennter = bbox.Center;
-            Line leftLine = boxLine[3];
-            Point3d ajusterLoc = Point3d.Unset;
-            Transform transform = Transform.Translation(leftLine.UnitTangent * -leftLine.Length / 2);
-            ajusterLoc = boxLine[3].PointAt(boxLine[3].Length / 2);
-            ajusterLoc.Transform(transform);
-            plane.Origin = ajusterLoc;
-            te.Plane = plane;
-
-            //Plane to scale the font at
-            Plane scalePlane = new Plane(plane);
-            scalePlane.Origin = location;
-
-            //Scale the font
-            Transform scaleFactor = Transform.Scale(scalePlane, scale, scale, 0); // Replace with actual scale factorp
+            //Create text entity
+            TextEntity te = TextEntity.Create(text, plane, style, false, 1, 0);
 
             //Convert text entity to curves
-            Curve[] curves = te.CreateCurves(doc.DimStyles[id], false, 1, 0.1);
+            Curve[] curves = te.CreateCurves(style, false, 0, 0);
 
-            // Scale all curves using the center of the bounding box
+            //Transform the curve
             foreach (Curve curve in curves)
             {
-                curve.Transform(scaleFactor);
+                curve.Transform(transform);
             }
-            //Dispose the headless doc
+
+            //free recourses 
             doc.Dispose();
+            te.Dispose();
 
             //Wrap the curve array in a grasshopper native array
             GH_Curve[] gH_Curves = curves.Select(c => new GH_Curve(c)).ToArray();
