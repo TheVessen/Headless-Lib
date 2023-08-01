@@ -1,4 +1,4 @@
-# Rhino.Compute save Components Library for Grasshopper
+# Rhino.Compute safe Components Library for Grasshopper
 
 ## Introduction
 
