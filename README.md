@@ -8,7 +8,7 @@ The mission of this library is to enhance, grow, and facilitate the development 
 
 ## Features
 
-- **Headless Environement Save**: Components that are designed to work seamlessly in a headless Rhino environment.
+- **Headless Environement Safe**: Components that are designed to work seamlessly in a headless Rhino environment.
 - **Grasshopper Compatibility**: Enhance existing Grasshopper scripts with robust and compute-ready functionality.
 
 ## Getting Started
