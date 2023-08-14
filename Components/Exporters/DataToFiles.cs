@@ -126,7 +126,7 @@ namespace Headless.Components.Exporters
                 FileData fileData = new FileData();
                 fileData.fileName = att.Name;
                 fileData.data = base64String;
-                fileData.filetype = fileEnding;
+                fileData.fileType = fileEnding;
 
                 string serialFiles = JsonConvert.SerializeObject(fileData);
 
@@ -165,7 +165,7 @@ namespace Headless.Components.Exporters
         {
             public string fileName { get; set; }
             public string data { get; set; }
-            public string filetype { get; set; }
+            public string fileType { get; set; }
         }
 
     }
