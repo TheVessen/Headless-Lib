@@ -28,12 +28,12 @@ namespace Headless
     }
 }
 
-public class HeadlesCategoryIcon : GH_AssemblyPriority
-{
-    public override GH_LoadingInstruction PriorityLoad()
-    {
-        Instances.ComponentServer.AddCategoryIcon("Headles", Resources.libIcon);
-        Instances.ComponentServer.AddCategorySymbolName("Headles", 'H');
-        return GH_LoadingInstruction.Proceed;
-    }
-}
+//public class HeadlesCategoryIcon : GH_AssemblyPriority
+//{
+//    public override GH_LoadingInstruction PriorityLoad()
+//    {
+//        Instances.ComponentServer.AddCategoryIcon("Headles", Resources.libIcon);
+//        Instances.ComponentServer.AddCategorySymbolName("Headles", 'H');
+//        return GH_LoadingInstruction.Proceed;
+//    }
+//}

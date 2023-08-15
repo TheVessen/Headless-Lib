@@ -1,4 +1,4 @@
-# Rhino.Compute save Components Library for Grasshopper
+# Rhino.Compute safe Components Library for Grasshopper
 
 ## Introduction
 
@@ -8,7 +8,7 @@ The mission of this library is to enhance, grow, and facilitate the development 
 
 ## Features
 
-- **Headless Environement Save**: Components that are designed to work seamlessly in a headless Rhino environment.
+- **Headless Environement Safe**: Components that are designed to work seamlessly in a headless Rhino environment.
 - **Grasshopper Compatibility**: Enhance existing Grasshopper scripts with robust and compute-ready functionality.
 
 ## Getting Started
@@ -30,11 +30,11 @@ We welcome contributions from the community! Whether you're fixing bugs, adding 
 
 ## License
 
-This project is licensed under the MIT License - see the [[LICENSE.md](link-to-license-file)](https://github.com/TheVessen/Headless-Lib/blob/master/LICENSE.txt) file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/TheVessen/Headless-Lib/blob/master/LICENSE.txt) file for details.
 
 ## Contact
 
-For questions, feedback, or support, please [[create an issue](link-to-issues-page)](https://github.com/TheVessen/Headless-Lib/issues) on GitHub or contact the project maintainers directly.
+For questions, feedback, or support, please [create an issue](https://github.com/TheVessen/Headless-Lib/issues) on GitHub or contact the project maintainers directly.
 
 ## Acknowledgments
 
