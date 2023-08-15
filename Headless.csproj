@@ -47,7 +47,7 @@
 		<StartArguments>
 			/runscript="_-RunScript (
 			Set GH = Rhino.GetPlugInObject(""Grasshopper"")
-			Call GH.OpenDocument(""C:\Users\Felix Brunold\Documents\Coding\Alpaca-Compute\static\headlessTest.gh""))"
+			<!--Call GH.OpenDocument(""C:\Users\Felix Brunold\Documents\Coding\Alpaca-Compute\static\headlessTest.gh""))"-->
 		</StartArguments>
 		<StartAction>Program</StartAction>
 	</PropertyGroup>

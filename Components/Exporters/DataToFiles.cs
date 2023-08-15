@@ -1,22 +1,13 @@
-﻿using Eto.Forms;
-using Grasshopper.GUI;
-using Grasshopper;
-using Grasshopper.GUI.Canvas;
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Attributes;
+﻿using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Rhino;
 using Rhino.DocObjects;
 using Rhino.Geometry;
-using Rhino.Render.ChangeQueue;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Linq;
-using Grasshopper.My.Resources;
 using Headless.Utilities;
 
 namespace Headless.Components.Exporters
@@ -27,17 +18,18 @@ namespace Headless.Components.Exporters
         /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
         public DataToFiles()
-          : base("DataToFiles", "DTF",
+          : base("DataToFiles", "DTFs",
               "Description",
               "Headless", "Exporter")
         {
         }
 
+        /// <summary>
+        /// Comment out if you need the output params
+        /// </summary>
         public override void CreateAttributes()
         {
-            //m_attributes = new DataToFilesAttributes(this);
             m_attributes = new NoOutputComponent<DataToFiles>(this);
-            
         }
 
         /// <summary>
@@ -137,7 +129,7 @@ namespace Headless.Components.Exporters
                 //Add geo to doc
                 doc.Objects.Add(geoBase, att);
 
-                string base64String = Utilities.docToBase64(doc, ".3dm");
+                string base64String =  Helpers.docToBase64(doc, ".3dm");
 
                 FileData fileData = new FileData();
                 fileData.fileName = att.Name;

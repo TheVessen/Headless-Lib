@@ -7,6 +7,8 @@ using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 using System.Linq;
 using System.Drawing;
+using Headless.Components.Exporters;
+using Headless.Utilities;
 
 namespace Headless.Components.Display
 {
@@ -28,6 +30,15 @@ namespace Headless.Components.Display
             public int id { get; set; }
 
         }
+
+        /// <summary>
+        /// Comment out if you need the output params
+        /// </summary>
+        public override void CreateAttributes()
+        {
+            m_attributes = new NoOutputComponent<WebDisplay>(this);
+        }
+
 
         /// <summary>
         /// Registers all the input parameters for this component.
@@ -98,11 +109,7 @@ namespace Headless.Components.Display
             DA.SetDataList(0, threeDisplays);
 
         }
-        protected override void AfterSolveInstance()
-        {
-            //Unregister the output parameter
-            Params.UnregisterOutputParameter(Params.Output[0]);
-        }
+
 
         /// <summary>
         /// Provides an Icon for the component.
