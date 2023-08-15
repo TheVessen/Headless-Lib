@@ -3,10 +3,13 @@ using System.Collections.Generic;
 
 using Grasshopper.Kernel;
 using Rhino;
-using Rhino.Geometry;
-using Rhino.DocObjects;
 using System.IO;
-
+using System.Drawing;
+using Grasshopper.GUI.Canvas;
+using Grasshopper.GUI;
+using Grasshopper;
+using System.Drawing.Drawing2D;
+using Grasshopper.Kernel.Attributes;
 
 public static class Utilities
 {
