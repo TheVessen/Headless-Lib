@@ -20,7 +20,7 @@ namespace Headless.Components.Exporters
         public DataToFile()
           : base("DataToFile", "DTF",
               "Description",
-              "Headless", "Exporter")
+              "Headless", "Output")
         {
         }
 
@@ -39,9 +39,8 @@ namespace Headless.Components.Exporters
         {
             pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.list);
             pManager.AddGenericParameter("Attributes", "A", "Attributes of the geometry", GH_ParamAccess.list);
-            pManager.AddTextParameter("LayerNames", "L", "Layer names", GH_ParamAccess.list);
-            pManager.AddTextParameter("FileEnding", "E", "File ending of the geometry", GH_ParamAccess.item, ".3dm");
             pManager.AddTextParameter("FileName", "N", "Name of the File per List 1", GH_ParamAccess.item, "DefaultName");
+            pManager.AddTextParameter("FileEnding", "E", "File ending of the geometry", GH_ParamAccess.item, ".3dm");
         }
 
         /// <summary>
@@ -49,9 +48,7 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("Files", "F", "Files", GH_ParamAccess.item);
-            pManager.HideParameter(0);
-            pManager[0].Optional = true;
+            pManager.AddTextParameter("File", "F", "Files", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -60,75 +57,71 @@ namespace Headless.Components.Exporters
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            // Initialize the data trees to hold the input data
+            //Set index
+            const int GEOMETRY_PARAM_INDEX = 0;
+            const int ATTRIBUTES_PARAM_INDEX = 1;
+            const int FILENAME_PARAM_INDEX = 2;
+            const int FILEENDING_PARAM_INDEX = 3;
+
+            // Initialize vars to store the data from DA
             List<IGH_GeometricGoo> geometryList = new List<IGH_GeometricGoo>();
-            List<IGH_Goo> attributesList = new List<IGH_Goo>();
-            List<GH_String> layerNames = new List<GH_String>();
+            List<IGH_Goo> objectAttributesList = new List<IGH_Goo>();
             string fileEnding = string.Empty;
             string fileName = string.Empty;
 
-
             // Retrieve the data from the input parameters
-            if (!DA.GetDataList(0, geometryList)) return; // The 0 here refers to the first parameter index
-            if (!DA.GetDataList(1, attributesList)) return; // The 1 here refers to the second parameter index
-            if (!DA.GetDataList(2, layerNames)) return; // The 2 here refers to the third parameter index
-            if (!DA.GetData(3, ref fileEnding)) return; // The 3 here refers to the fourth parameter index
-            if (!DA.GetData(4, ref fileEnding)) return; // The 3 here refers to the fourth parameter index
+            if (!DA.GetDataList(GEOMETRY_PARAM_INDEX, geometryList)) return; 
+            if (!DA.GetDataList(ATTRIBUTES_PARAM_INDEX, objectAttributesList)) return; 
+            if (geometryList.Count != objectAttributesList.Count)
+            {
+                string msg = "The number of attributes & layernames have to be the same as geometries";
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
+            }
 
+            if (!DA.GetData(FILENAME_PARAM_INDEX, ref fileName)) return; 
+            if (!DA.GetData(FILEENDING_PARAM_INDEX, ref fileEnding)) return; 
 
-            // This assumes that you want to convert the generic objects to ObjectAttributes
-            List<ObjectAttributes> allAttributes = attributesList.OfType<ObjectAttributes>().ToList();
-
-            List<string> documents = new List<string>();
-
+            //Create headless doc
             RhinoDoc doc = RhinoDoc.CreateHeadless(null);
             for (int i = 0; i < geometryList.Count; i++)
             {
-                IGH_GeometricGoo geo = geometryList[i];
-                ObjectAttributes att;
-                if (allAttributes.Count == 1)
-                {
-                    att = allAttributes[0];
-                }
-                else
-                {
-                    att = allAttributes[i];
-                }
-                if (geo == null || att == null)
-                {
-                    string msg = "Had problems finding geo or att";
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
-                }
+                //Set geo and attributes
+                GeometryBase geo = geometryList[i].ScriptVariable() as GeometryBase;
+                ObjectAttributes atb = objectAttributesList[i].ScriptVariable() as ObjectAttributes;
 
                 //Create current layer get name an color from attribute
-                Layer layer = new Layer();
-                layer.Name = att.Name;
-                layer.PlotColor = att.PlotColor;
-                layer.Color = att.ObjectColor;
+                Layer layer = new Layer() { 
+                    Color=atb.ObjectColor,
+                    PlotColor=atb.PlotColor,
+                    Name=atb.Name
+                };
+
+                //Get layer index to assign layer to attribute
                 int layerIndex = doc.Layers.Add(layer);
 
                 //Set layer index to attribute
-                att.LayerIndex = layerIndex;
-
-                GeometryBase geoBase = geo.ScriptVariable() as GeometryBase;
+                atb.LayerIndex = layerIndex;
 
                 //Add geo to doc
-                doc.Objects.Add(geoBase, att);
+                doc.Objects.Add(geo, atb);
 
-
-
-
-                doc.Dispose();
             }
-            FileData fileData = new FileData();
-            fileData.fileName = fileName;
-            string base64String = Helpers.docToBase64(doc, ".3dm");
-            fileData.data = base64String;
-            fileData.fileType = fileEnding;
-            string serialFile = JsonConvert.SerializeObject(fileData);
 
-            //Set output
-            DA.SetData(0, serialFile);
+            //Convert doc to string
+            string base64String = Helpers.docToBase64(doc, fileEnding);
+
+            //Add additional data to the file for serialization
+            FileData fileData = new FileData() { fileName=fileName, data=base64String, fileType=fileEnding};
+
+            string b64File = JsonConvert.SerializeObject(fileData);
+
+            //Free recources
+            doc.Dispose();
+
+            //
+            //OUTPUT
+            //
+            DA.SetData(0, b64File);
         }
 
 

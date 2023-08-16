@@ -20,7 +20,7 @@ namespace Headless.Components.Display
         public WebDisplay()
           : base("Display", "D",
               "Converts mesh to display file",
-              "Headless", "Display")
+              "Headless", "Output")
         { }
 
         public class ThreeDisplay
@@ -39,7 +39,6 @@ namespace Headless.Components.Display
             m_attributes = new NoOutputComponent<WebDisplay>(this);
         }
 
-
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
@@ -55,8 +54,6 @@ namespace Headless.Components.Display
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddTextParameter("Display", "D", "Display", GH_ParamAccess.list);
-            pManager.HideParameter(0);
-            pManager[0].Optional = true;
         }
 
         /// <summary>
@@ -65,12 +62,15 @@ namespace Headless.Components.Display
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            //Base vals
             GH_Structure<GH_Mesh> mesh = new GH_Structure<GH_Mesh>();
             GH_Structure<GH_Colour> color = new GH_Structure<GH_Colour>();
 
+            //Ref to vals
             if (!DA.GetDataTree(0, out mesh)) return;
             if (!DA.GetDataTree(1, out color)) return;
 
+            //Convert Three to List
             List<Mesh> allMeshes = mesh.AllData(true)
                 .OfType<GH_Mesh>()  // Ensure that the item is of type GH_Mesh.
                 .Select(ghMesh => ghMesh.Value)  // Now you can access the Value property.
@@ -97,7 +97,7 @@ namespace Headless.Components.Display
                 }
                 else
                 {
-                    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Number of colors must be 1 or equal to number of meshes");
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Number of colors must be 1 or equal to number of meshes");
                 }
                 threeDisplay.id = counter;
                 string obj = Newtonsoft.Json.JsonConvert.SerializeObject(threeDisplay);
@@ -105,7 +105,10 @@ namespace Headless.Components.Display
                 counter++;
             }
 
-            //Output that doesnt show in the gh ui component
+            //
+            //Output
+            //
+
             DA.SetDataList(0, threeDisplays);
 
         }

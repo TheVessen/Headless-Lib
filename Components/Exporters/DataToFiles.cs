@@ -20,7 +20,7 @@ namespace Headless.Components.Exporters
         public DataToFiles()
           : base("DataToFiles", "DTFs",
               "Description",
-              "Headless", "Exporter")
+              "Headless", "Output")
         {
         }
 
@@ -49,8 +49,6 @@ namespace Headless.Components.Exporters
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddTextParameter("Files", "F", "Files", GH_ParamAccess.list);
-            pManager.HideParameter(0);
-            pManager[0].Optional = true;
         }
 
 
@@ -61,44 +59,51 @@ namespace Headless.Components.Exporters
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            // Initialize the data trees to hold the input data
+            //Set index
+            const int GEOMETRY_PARAM_INDEX = 0;
+            const int ATTRIBUTES_PARAM_INDEX = 1;
+            const int FILENAME_PARAM_INDEX = 2;
+            const int FILEENDING_PARAM_INDEX = 3;
+
+            // Initialize ref vars
             GH_Structure<IGH_GeometricGoo> geometryTree = new GH_Structure<IGH_GeometricGoo>();
             GH_Structure<IGH_Goo> attributesTree = new GH_Structure<IGH_Goo>();
-            GH_Structure<GH_String> fileNamesTree = new GH_Structure<GH_String>();
+            GH_Structure<GH_String> fileNameTree = new GH_Structure<GH_String>();
             string fileEnding = string.Empty;
 
             // Retrieve the data from the input parameters
-            if (!DA.GetDataTree(0, out geometryTree)) return; // The 0 here refers to the first parameter index
-            if (!DA.GetDataTree(1, out attributesTree)) return; // The 1 here refers to the second parameter index
-            if (!DA.GetDataTree(2, out fileNamesTree)) return; // The 2 here refers to the third parameter index
-            if (!DA.GetData(3, ref fileEnding)) return; // The 3 here refers to the fourth parameter index
+            if (!DA.GetDataTree(GEOMETRY_PARAM_INDEX, out geometryTree)) return; 
+            if (!DA.GetDataTree(ATTRIBUTES_PARAM_INDEX, out attributesTree)) return; 
+            if (!DA.GetDataTree(FILENAME_PARAM_INDEX, out fileNameTree)) return; 
+            if (!DA.GetData(FILEENDING_PARAM_INDEX, ref fileEnding)) return; 
 
-
-            // Convert the data trees to lists
+            // Convert trees to lists
             List<IGH_GeometricGoo> allGeo = geometryTree.AllData(true).OfType<IGH_GeometricGoo>().ToList();
-
 
             List<object> converterTree = attributesTree.AllData(true)
                 .Select(goo => goo.ScriptVariable())
                 .ToList();
 
-            List<string> allStrings = fileNamesTree.AllData(true)
+            List<string> allStrings = fileNameTree.AllData(true)
                 .Select(ghstr => (ghstr as GH_String)?.Value)
                 .Where(s => s != null)
                 .ToList();
 
-            // This assumes that you want to convert the generic objects to ObjectAttributes
+            // Convert the generic objects to ObjectAttributes
             List<ObjectAttributes> allAttributes = converterTree.OfType<ObjectAttributes>().ToList();
 
+            //List of json docs
             List<string> documents = new List<string>();
 
+            //Loop though all geo items
             for (int i = 0; i < allGeo.Count; i++)
             {
                 //Create a headless doc
                 string docName = string.Empty;
 
                 RhinoDoc doc = RhinoDoc.CreateHeadless(null);
-                IGH_GeometricGoo geo = allGeo[i];
+
+                GeometryBase geo = allGeo[i].ScriptVariable() as GeometryBase;
                 ObjectAttributes att;
                 if (allAttributes.Count == 1)
                 {
@@ -115,34 +120,45 @@ namespace Headless.Components.Exporters
                 }
 
                 //Create current layer get name an color from attribute
-                Layer layer = new Layer();
-                layer.Name = att.Name;
-                layer.PlotColor = att.PlotColor;
-                layer.Color = att.ObjectColor;
+                Layer layer = new Layer()
+                {
+                    Name = att.Name,
+                    PlotColor = att.PlotColor,
+                    Color = att.PlotColor
+                };
+
+                //Add layer to doc and get index to assign to object attribute
                 int layerIndex = doc.Layers.Add(layer);
 
                 //Set layer index to attribute
                 att.LayerIndex = layerIndex;
 
-                GeometryBase geoBase = geo.ScriptVariable() as GeometryBase;
-
                 //Add geo to doc
-                doc.Objects.Add(geoBase, att);
+                doc.Objects.Add(geo, att);
+
 
                 string base64String =  Helpers.docToBase64(doc, ".3dm");
 
-                FileData fileData = new FileData();
-                fileData.fileName = att.Name;
-                fileData.data = base64String;
-                fileData.fileType = fileEnding;
+                FileData fileData = new FileData()
+                {
+                    fileName = att.Name,
+                    data = base64String,
+                    fileType = fileEnding
+                };
 
+                //Convert class to JSON
                 string serialFiles = JsonConvert.SerializeObject(fileData);
 
+                //Add to list
                 documents.Add(serialFiles);
+
+                //Free resources
                 doc.Dispose();
             }
 
-            //Set output
+            //
+            //Output
+            //
             DA.SetDataList(0, documents);
         }
 
