@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Headless.Utilities;
+using System.Collections;
+using Grasshopper.Documentation;
 
 namespace Headless.Components.Exporters
 {
@@ -37,9 +39,9 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.list);
-            pManager.AddGenericParameter("Attributes", "A", "Attributes of the geometry", GH_ParamAccess.list);
-            pManager.AddTextParameter("FileName", "N", "Name of the File per List 1", GH_ParamAccess.item, "DefaultName");
+            pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("Attributes", "A", "Attributes of the geometry", GH_ParamAccess.tree);
+            pManager.AddTextParameter("FileName", "N", "Name of the File per List 1", GH_ParamAccess.tree);
             pManager.AddTextParameter("FileEnding", "E", "File ending of the geometry", GH_ParamAccess.item, ".3dm");
         }
 
@@ -48,7 +50,7 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("File", "F", "Files", GH_ParamAccess.item);
+            pManager.AddTextParameter("File", "F", "Files", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -64,64 +66,99 @@ namespace Headless.Components.Exporters
             const int FILEENDING_PARAM_INDEX = 3;
 
             // Initialize vars to store the data from DA
-            List<IGH_GeometricGoo> geometryList = new List<IGH_GeometricGoo>();
-            List<IGH_Goo> objectAttributesList = new List<IGH_Goo>();
+            GH_Structure<IGH_GeometricGoo> geometryList = new GH_Structure<IGH_GeometricGoo>();
+            GH_Structure<IGH_Goo> objectAttributesList = new GH_Structure<IGH_Goo>();
             string fileEnding = string.Empty;
-            string fileName = string.Empty;
+            GH_Structure<GH_String> fileName = new GH_Structure<GH_String>();
 
             // Retrieve the data from the input parameters
-            if (!DA.GetDataList(GEOMETRY_PARAM_INDEX, geometryList)) return; 
-            if (!DA.GetDataList(ATTRIBUTES_PARAM_INDEX, objectAttributesList)) return; 
-            if (geometryList.Count != objectAttributesList.Count)
+            if (!DA.GetDataTree(GEOMETRY_PARAM_INDEX, out geometryList)) return;
+            if (!DA.GetDataTree(ATTRIBUTES_PARAM_INDEX, out objectAttributesList)) return;
+
+            if (geometryList.PathCount != objectAttributesList.PathCount)
             {
-                string msg = "The number of attributes & layernames have to be the same as geometries";
+                string msg = "The number of attributes & layer names have to be the same as geometries";
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
+                return;
             }
-
-            if (!DA.GetData(FILENAME_PARAM_INDEX, ref fileName)) return; 
-            if (!DA.GetData(FILEENDING_PARAM_INDEX, ref fileEnding)) return; 
-
-            //Create headless doc
-            RhinoDoc doc = RhinoDoc.CreateHeadless(null);
-            for (int i = 0; i < geometryList.Count; i++)
+            if (fileName.PathCount != objectAttributesList.PathCount)
             {
-                //Set geo and attributes
-                GeometryBase geo = geometryList[i].ScriptVariable() as GeometryBase;
-                ObjectAttributes atb = objectAttributesList[i].ScriptVariable() as ObjectAttributes;
-
-                //Create current layer get name an color from attribute
-                Layer layer = new Layer() { 
-                    Color=atb.ObjectColor,
-                    PlotColor=atb.PlotColor,
-                    Name=atb.Name
-                };
-
-                //Get layer index to assign layer to attribute
-                int layerIndex = doc.Layers.Add(layer);
-
-                //Set layer index to attribute
-                atb.LayerIndex = layerIndex;
-
-                //Add geo to doc
-                doc.Objects.Add(geo, atb);
-
+                string msg = "The number of filnames has to match the Trees";
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
+                return;
             }
 
-            //Convert doc to string
-            string base64String = Helpers.docToBase64(doc, fileEnding);
+            if (!DA.GetDataTree(FILENAME_PARAM_INDEX, out fileName)) return;
+            if (!DA.GetData(FILEENDING_PARAM_INDEX, ref fileEnding)) return;
 
-            //Add additional data to the file for serialization
-            FileData fileData = new FileData() { fileName=fileName, data=base64String, fileType=fileEnding};
+            List<GH_String> fileLS = new List<GH_String>();
 
-            string b64File = JsonConvert.SerializeObject(fileData);
+            for (int i = 0; i < geometryList.PathCount; i++)
+            {
+                //Create headless doc
+                RhinoDoc doc = RhinoDoc.CreateHeadless(null);
 
-            //Free recources
-            doc.Dispose();
 
-            //
-            //OUTPUT
-            //
-            DA.SetData(0, b64File);
+                List<IGH_GeometricGoo> currentBranchGeo = geometryList.get_Branch(i).Cast<IGH_GeometricGoo>().ToList();
+                List<IGH_Goo> currentBranchAttributes = objectAttributesList.get_Branch(i).Cast<IGH_Goo>().ToList();
+
+                if (currentBranchAttributes.Count != 1 && currentBranchAttributes.Count != currentBranchGeo.Count)
+                {
+                    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The attribute count has to match the amount of geometries in a list or 1");
+                    return;
+                }
+
+                for (int j = 0; j < currentBranchGeo.Count; j++)
+                {
+                    //Set geo and attributes
+                    GeometryBase geo = currentBranchGeo[j].ScriptVariable() as GeometryBase;
+
+                    ObjectAttributes atb;
+                    if (currentBranchAttributes.Count == 1)
+                    {
+                        atb = currentBranchAttributes[0].ScriptVariable() as ObjectAttributes;
+                    }
+                    else
+                    {
+                        atb = currentBranchAttributes[j].ScriptVariable() as ObjectAttributes;
+                    }
+
+                    //Create current layer get name and color from attribute
+                    Layer layer = new Layer()
+                    {
+                        Color = atb.ObjectColor,
+                        PlotColor = atb.PlotColor,
+                        Name = atb.Name
+                    };
+
+                    //Get layer index to assign layer to attribute
+                    int layerIndex = doc.Layers.Add(layer);
+
+                    //Set layer index to attribute
+                    atb.LayerIndex = layerIndex;
+
+                    //Add geo to doc
+                    doc.Objects.Add(geo, atb);
+
+                    //Convert doc to string
+                }
+                string base64String = Helpers.docToBase64(doc, fileEnding);
+
+                //Add additional data to the file for serialization
+                FileData fileData = new FileData() { fileName = fileName.get_Branch(i)[0] as string, data = base64String, fileType = fileEnding };
+
+                string b64File = JsonConvert.SerializeObject(fileData);
+
+                fileLS.Add(new GH_String(b64File));
+
+                //Free recources
+                doc.Dispose();
+
+                //
+                //OUTPUT
+                //
+            }
+            DA.SetData(0, fileLS);
         }
 
 

@@ -9,6 +9,8 @@ using System.Linq;
 using System.Drawing;
 using Headless.Components.Exporters;
 using Headless.Utilities;
+using Rhino.DocObjects;
+using System.Net.Configuration;
 
 namespace Headless.Components.Display
 {
@@ -19,7 +21,7 @@ namespace Headless.Components.Display
         /// </summary>
         public WebDisplay()
           : base("Display", "D",
-              "Converts mesh to display file",
+              "Converts mesh to display file. To have the best control over the output mesh, convert the geometry first to mesh, otherwise the geo will be converted with some default params",
               "Headless", "Output")
         { }
 
@@ -44,7 +46,7 @@ namespace Headless.Components.Display
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddMeshParameter("Mesh", "M", "Mesh to display", GH_ParamAccess.tree);
+            pManager.AddGenericParameter("Geo", "G", "Geo to display", GH_ParamAccess.tree);
             pManager.AddColourParameter("Color", "C", "Color to display", GH_ParamAccess.tree);
         }
 
@@ -54,6 +56,7 @@ namespace Headless.Components.Display
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddTextParameter("Display", "D", "Display", GH_ParamAccess.list);
+            pManager.AddMeshParameter("DisplayMeshPreview", "P", "Preview Mesh", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -62,38 +65,88 @@ namespace Headless.Components.Display
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            //Base vals
-            GH_Structure<GH_Mesh> mesh = new GH_Structure<GH_Mesh>();
+
+            //ref vars
+            GH_Structure<IGH_Goo> GHBaseGeo = new GH_Structure<IGH_Goo>();
             GH_Structure<GH_Colour> color = new GH_Structure<GH_Colour>();
 
-            //Ref to vals
-            if (!DA.GetDataTree(0, out mesh)) return;
+            //Ref to vars
+            if (!DA.GetDataTree(0, out GHBaseGeo)) return;
             if (!DA.GetDataTree(1, out color)) return;
 
-            //Convert Three to List
-            List<Mesh> allMeshes = mesh.AllData(true)
-                .OfType<GH_Mesh>()  // Ensure that the item is of type GH_Mesh.
-                .Select(ghMesh => ghMesh.Value)  // Now you can access the Value property.
-                .ToList();
+            //Base params
+            MeshingParameters mParams = new MeshingParameters();
+            mParams.SimplePlanes = true;
+            //vars
+            List<Mesh> meshes = new List<Mesh>();
+            List<GeometryBase> geometries = new List<GeometryBase>();
+
+            foreach (IGH_Goo goo in GHBaseGeo.AllData(true))
+            {
+                try
+                {
+                    object internalData = goo.ScriptVariable();  // This method gets the underlying geometry data.
+
+                    switch (internalData)
+                    {
+                        case Mesh mesh:
+                            meshes.Add(mesh);
+                            break;
+
+                        case Brep brep:
+                            Mesh[] brepMeshes = Mesh.CreateFromBrep(brep, mParams);
+                            meshes.AddRange(brepMeshes);
+                            break;
+
+                        case Surface surface:
+                            Mesh surfaceMesh = Mesh.CreateFromSurface(surface, mParams);
+                            meshes.Add(surfaceMesh);
+                            break;
+
+                        default:
+                            this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Could not convert geo to mesh");
+                            break;
+                    }
+                }
+                catch
+                {
+                    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Something went wrong in the casting process");
+                }
+            }
+
+            if (meshes.Count == 0)
+            {
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No meshes to convert");
+            }
 
             List<Color> allColors = color.AllData(true)
-                .OfType<GH_Colour>()  // Ensure the item is of type GH_Colour.
-                .Select(ghColour => ghColour.Value)  // Access the Value property.
-                .ToList();
+            .OfType<GH_Colour>()  // Ensure the item is of type GH_Colour.
+            .Select(ghColour => ghColour.Value)  // Access the Value property.
+            .ToList();
 
             int counter = 0;
             List<string> threeDisplays = new List<string>();
-            foreach (Mesh m in allMeshes)
+            List<GH_Mesh> previewMeshList = new List<GH_Mesh>();
+
+            //convert to string and create preview
+            foreach (Mesh m in meshes)
             {
                 ThreeDisplay threeDisplay = new ThreeDisplay();
                 threeDisplay.geometry = m;
+                Mesh previewMesh = m.DuplicateMesh();
                 if (allColors.Count == 1)
                 {
                     threeDisplay.material = allColors[0];
+                    previewMesh.VertexColors.CreateMonotoneMesh(allColors[0]);
+                    GH_Mesh previewMeshWrapper = new GH_Mesh(previewMesh);
+                    previewMeshList.Add(previewMeshWrapper);
                 }
-                else if (allColors.Count == allMeshes.Count)
+                else if (allColors.Count == meshes.Count)
                 {
                     threeDisplay.material = allColors[counter];
+                    previewMesh.VertexColors.CreateMonotoneMesh(allColors[counter]);
+                    GH_Mesh previewMeshWrapper = new GH_Mesh(previewMesh);
+                    previewMeshList.Add(previewMeshWrapper);
                 }
                 else
                 {
@@ -110,9 +163,8 @@ namespace Headless.Components.Display
             //
 
             DA.SetDataList(0, threeDisplays);
-
+            DA.SetDataList(1, previewMeshList);
         }
-
 
         /// <summary>
         /// Provides an Icon for the component.
