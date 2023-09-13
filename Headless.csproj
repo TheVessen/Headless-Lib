@@ -24,7 +24,9 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <PackageReference Include="Grasshopper" Version="7.13.21348.13001" IncludeAssets="compile;build" />
+    <PackageReference Include="Grasshopper" Version="7.32.23221.10241" IncludeAssets="compile;build" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="PdfSharp" Version="1.50.5147" />
   </ItemGroup>
   
   <ItemGroup>
@@ -40,9 +42,18 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Components\Pdf\" />
+  </ItemGroup>
 
 	<PropertyGroup Condition="$(Configuration) == 'Debug' AND $([MSBuild]::IsOSPlatform(Windows))">
 		<StartProgram>C:\Program Files\Rhino 7\System\Rhino.exe</StartProgram>
+		<StartArguments>
+			/runscript="_-RunScript (
+			Set GH = Rhino.GetPlugInObject(""Grasshopper"")
+			<!--Call GH.OpenDocument(""C:\Users\Felix Brunold\Documents\Coding\Alpaca-Compute\static\headlessTest.gh""))"-->
+		</StartArguments>
 		<StartAction>Program</StartAction>
 	</PropertyGroup>
 
