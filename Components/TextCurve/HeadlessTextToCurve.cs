@@ -176,9 +176,9 @@ namespace Headless.Components.TextCurve
             te.Dispose();
 
             //Wrap the curve array in a grasshopper native array
-            GH_Curve[] gH_Curves = curves.Select(c => new GH_Curve(c)).ToArray();
+            GH_Curve[] gHCurves = curves.Select(c => new GH_Curve(c)).ToArray();
             //Output
-            DA.SetDataList(0, gH_Curves);
+            DA.SetDataList(0, gHCurves);
         }
 
         /// <summary>
