@@ -60,20 +60,20 @@ namespace Headless.Components.Exporters
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             //Set index
-            const int GEOMETRY_PARAM_INDEX = 0;
-            const int ATTRIBUTES_PARAM_INDEX = 1;
-            const int FILENAME_PARAM_INDEX = 2;
-            const int FILEENDING_PARAM_INDEX = 3;
+            const int geometryParamIndex = 0;
+            const int attributesParamIndex = 1;
+            const int filenameParamIndex = 2;
+            const int fileendingParamIndex = 3;
 
             // Initialize vars to store the data from DA
-            GH_Structure<IGH_GeometricGoo> geometryList = new GH_Structure<IGH_GeometricGoo>();
-            GH_Structure<IGH_Goo> objectAttributesList = new GH_Structure<IGH_Goo>();
+            GH_Structure<IGH_GeometricGoo> geometryList;
+            GH_Structure<IGH_Goo> objectAttributesList;
             string fileEnding = string.Empty;
             GH_Structure<GH_String> fileName = new GH_Structure<GH_String>();
 
             // Retrieve the data from the input parameters
-            if (!DA.GetDataTree(GEOMETRY_PARAM_INDEX, out geometryList)) return;
-            if (!DA.GetDataTree(ATTRIBUTES_PARAM_INDEX, out objectAttributesList)) return;
+            if (!DA.GetDataTree(geometryParamIndex, out geometryList)) return;
+            if (!DA.GetDataTree(attributesParamIndex, out objectAttributesList)) return;
 
             if (geometryList.PathCount != objectAttributesList.PathCount)
             {
@@ -88,10 +88,10 @@ namespace Headless.Components.Exporters
                 return;
             }
 
-            if (!DA.GetDataTree(FILENAME_PARAM_INDEX, out fileName)) return;
-            if (!DA.GetData(FILEENDING_PARAM_INDEX, ref fileEnding)) return;
+            if (!DA.GetDataTree(filenameParamIndex, out fileName)) return;
+            if (!DA.GetData(fileendingParamIndex, ref fileEnding)) return;
 
-            List<GH_String> fileLS = new List<GH_String>();
+            List<GH_String> fileLs = new List<GH_String>();
 
             for (int i = 0; i < geometryList.PathCount; i++)
             {
@@ -124,18 +124,21 @@ namespace Headless.Components.Exporters
                     }
 
                     //Create current layer get name and color from attribute
-                    Layer layer = new Layer()
+                    if (atb != null)
                     {
-                        Color = atb.ObjectColor,
-                        PlotColor = atb.PlotColor,
-                        Name = atb.Name
-                    };
+                        Layer layer = new Layer()
+                        {
+                            Color = atb.ObjectColor,
+                            PlotColor = atb.PlotColor,
+                            Name = atb.Name
+                        };
 
-                    //Get layer index to assign layer to attribute
-                    int layerIndex = doc.Layers.Add(layer);
+                        //Get layer index to assign layer to attribute
+                        int layerIndex = doc.Layers.Add(layer);
 
-                    //Set layer index to attribute
-                    atb.LayerIndex = layerIndex;
+                        //Set layer index to attribute
+                        atb.LayerIndex = layerIndex;
+                    }
 
                     //Add geo to doc
                     doc.Objects.Add(geo, atb);
@@ -145,11 +148,11 @@ namespace Headless.Components.Exporters
                 string base64String = Helpers.docToBase64(doc, fileEnding);
 
                 //Add additional data to the file for serialization
-                FileData fileData = new FileData() { fileName = fileName.get_Branch(i)[0] as string, data = base64String, fileType = fileEnding };
+                FileData fileData = new FileData() { FileName = fileName.get_Branch(i)[0] as string, Data = base64String, FileType = fileEnding };
 
                 string b64File = JsonConvert.SerializeObject(fileData);
 
-                fileLS.Add(new GH_String(b64File));
+                fileLs.Add(new GH_String(b64File));
 
                 //Free recources
                 doc.Dispose();
@@ -158,7 +161,7 @@ namespace Headless.Components.Exporters
                 //OUTPUT
                 //
             }
-            DA.SetData(0, fileLS);
+            DA.SetData(0, fileLs);
         }
 
 
@@ -185,9 +188,9 @@ namespace Headless.Components.Exporters
 
         class FileData
         {
-            public string fileName { get; set; }
-            public string data { get; set; }
-            public string fileType { get; set; }
+            public string FileName { get; set; }
+            public string Data { get; set; }
+            public string FileType { get; set; }
         }
 
     }

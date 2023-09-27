@@ -37,12 +37,6 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            //ObjectAttributes defaultObjectAttributes = new ObjectAttributes();
-
-            //defaultObjectAttributes.Name = "Geometry";
-
-
-
             pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.tree);
             pManager.AddGenericParameter("Attributes", "A", "Attributes of the geometry", GH_ParamAccess.tree);
             pManager.AddTextParameter("FileNames", "F", "File names of the geometry", GH_ParamAccess.tree);
@@ -57,8 +51,6 @@ namespace Headless.Components.Exporters
             pManager.AddTextParameter("Files", "F", "Files", GH_ParamAccess.list);
         }
 
-
-
         /// <summary>
         /// This is the method that actually does the work.
         /// </summary>
@@ -66,22 +58,22 @@ namespace Headless.Components.Exporters
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             //Set index
-            const int GEOMETRY_PARAM_INDEX = 0;
-            const int ATTRIBUTES_PARAM_INDEX = 1;
-            const int FILENAME_PARAM_INDEX = 2;
-            const int FILEENDING_PARAM_INDEX = 3;
+            const int geometryParamIndex = 0;
+            const int attributesParamIndex = 1;
+            const int filenameParamIndex = 2;
+            const int fileendingParamIndex = 3;
 
             // Initialize ref vars
-            GH_Structure<IGH_GeometricGoo> geometryTree = new GH_Structure<IGH_GeometricGoo>();
-            GH_Structure<IGH_Goo> attributesTree = new GH_Structure<IGH_Goo>();
-            GH_Structure<GH_String> fileNameTree = new GH_Structure<GH_String>();
+            GH_Structure<IGH_GeometricGoo> geometryTree;
+            GH_Structure<IGH_Goo> attributesTree;
+            GH_Structure<GH_String> fileNameTree;
             string fileEnding = string.Empty;
 
             // Retrieve the data from the input parameters
-            if (!DA.GetDataTree(GEOMETRY_PARAM_INDEX, out geometryTree)) return; 
-            if (!DA.GetDataTree(ATTRIBUTES_PARAM_INDEX, out attributesTree)) return; 
-            if (!DA.GetDataTree(FILENAME_PARAM_INDEX, out fileNameTree)) return; 
-            if (!DA.GetData(FILEENDING_PARAM_INDEX, ref fileEnding)) return; 
+            if (!DA.GetDataTree(geometryParamIndex, out geometryTree)) return; 
+            if (!DA.GetDataTree(attributesParamIndex, out attributesTree)) return; 
+            if (!DA.GetDataTree(filenameParamIndex, out fileNameTree)) return; 
+            if (!DA.GetData(fileendingParamIndex, ref fileEnding)) return; 
 
             // Convert trees to lists
             List<IGH_GeometricGoo> allGeo = geometryTree.AllData(true).OfType<IGH_GeometricGoo>().ToList();
@@ -106,7 +98,6 @@ namespace Headless.Components.Exporters
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The attribute count has to match the amount of geometries in a list or 1");
                 return;
             }
-
 
             //Loop though all geo items
             for (int i = 0; i < allGeo.Count; i++)
@@ -155,9 +146,9 @@ namespace Headless.Components.Exporters
 
                 FileData fileData = new FileData()
                 {
-                    fileName = att.Name,
-                    data = base64String,
-                    fileType = fileEnding
+                    FileName = att.Name,
+                    Data = base64String,
+                    FileType = fileEnding
                 };
 
                 //Convert class to JSON
@@ -200,9 +191,9 @@ namespace Headless.Components.Exporters
 
         class FileData
         {
-            public string fileName { get; set; }
-            public string data { get; set; }
-            public string fileType { get; set; }
+            public string FileName { get; set; }
+            public string Data { get; set; }
+            public string FileType { get; set; }
         }
 
     }
