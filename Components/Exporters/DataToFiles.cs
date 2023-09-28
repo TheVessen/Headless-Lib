@@ -142,7 +142,7 @@ namespace Headless.Components.Exporters
                 doc.Objects.Add(geo, att);
 
 
-                string base64String =  Helpers.docToBase64(doc, ".3dm");
+                string base64String =  Helpers.docToBase64(doc, fileEnding);
 
                 FileData fileData = new FileData()
                 {

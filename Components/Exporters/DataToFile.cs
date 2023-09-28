@@ -41,7 +41,7 @@ namespace Headless.Components.Exporters
         {
             pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.tree);
             pManager.AddGenericParameter("Attributes", "A", "Attributes of the geometry", GH_ParamAccess.tree);
-            pManager.AddTextParameter("FileName", "N", "Name of the File per List 1", GH_ParamAccess.tree);
+            pManager.AddTextParameter("FileName", "N", "Name of the File per List 1", GH_ParamAccess.item);
             pManager.AddTextParameter("FileEnding", "E", "File ending of the geometry", GH_ParamAccess.item, ".3dm");
         }
 
@@ -50,7 +50,7 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("File", "F", "Files", GH_ParamAccess.list);
+            pManager.AddTextParameter("File", "F", "Files", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -59,71 +59,46 @@ namespace Headless.Components.Exporters
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            //Set index
-            const int geometryParamIndex = 0;
-            const int attributesParamIndex = 1;
-            const int filenameParamIndex = 2;
-            const int fileendingParamIndex = 3;
-
             // Initialize vars to store the data from DA
             GH_Structure<IGH_GeometricGoo> geometryList;
             GH_Structure<IGH_Goo> objectAttributesList;
+            string fileName = string.Empty;
             string fileEnding = string.Empty;
-            GH_Structure<GH_String> fileName = new GH_Structure<GH_String>();
 
-            // Retrieve the data from the input parameters
-            if (!DA.GetDataTree(geometryParamIndex, out geometryList)) return;
-            if (!DA.GetDataTree(attributesParamIndex, out objectAttributesList)) return;
+            // Retrieve the data from input parameters
+            if (!RetrieveData(DA, 0, out  geometryList)) return;
+            if (!RetrieveData(DA, 1, out objectAttributesList)) return;
+            if (!RetrieveData(DA, 2, out  fileName)) return;
+            if (!RetrieveData(DA, 3, out fileEnding)) return;
 
-            if (geometryList.PathCount != objectAttributesList.PathCount)
+            // Create headless doc
+            RhinoDoc doc = RhinoDoc.CreateHeadless(null);
+
+            // Check attribute count validity
+            List<IGH_Goo> allAttributes = objectAttributesList.AllData(true).ToList();
+            if (allAttributes.Count != 1 && allAttributes.Count != geometryList.PathCount)
             {
-                string msg = "The number of attributes & layer names have to be the same as geometries";
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
+                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The attribute count has to match the amount of geometries in a list or be 1");
                 return;
             }
-            if (fileName.PathCount != objectAttributesList.PathCount)
+
+            // Iterate over geometries
+            foreach (var path in geometryList.Paths)
             {
-                string msg = "The number of filnames has to match the Trees";
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
-                return;
-            }
+                List<IGH_GeometricGoo> currentBranchGeo = geometryList.get_Branch(path).Cast<IGH_GeometricGoo>().ToList();
+                List<IGH_Goo> currentBranchAttributes = objectAttributesList.get_Branch(path).Cast<IGH_Goo>().ToList();
 
-            if (!DA.GetDataTree(filenameParamIndex, out fileName)) return;
-            if (!DA.GetData(fileendingParamIndex, ref fileEnding)) return;
+                ObjectAttributes atb = (currentBranchAttributes.Count == 1) ? currentBranchAttributes[0].ScriptVariable() as ObjectAttributes : null;
 
-            List<GH_String> fileLs = new List<GH_String>();
-
-            for (int i = 0; i < geometryList.PathCount; i++)
-            {
-                //Create headless doc
-                RhinoDoc doc = RhinoDoc.CreateHeadless(null);
-
-
-                List<IGH_GeometricGoo> currentBranchGeo = geometryList.get_Branch(i).Cast<IGH_GeometricGoo>().ToList();
-                List<IGH_Goo> currentBranchAttributes = objectAttributesList.get_Branch(i).Cast<IGH_Goo>().ToList();
-
-                if (currentBranchAttributes.Count != 1 && currentBranchAttributes.Count != currentBranchGeo.Count)
+                foreach (var geoGoo in currentBranchGeo)
                 {
-                    this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The attribute count has to match the amount of geometries in a list or 1");
-                    return;
-                }
+                    GeometryBase geo = geoGoo.ScriptVariable() as GeometryBase;
 
-                for (int j = 0; j < currentBranchGeo.Count; j++)
-                {
-                    //Set geo and attributes
-                    GeometryBase geo = currentBranchGeo[j].ScriptVariable() as GeometryBase;
-
-                    ObjectAttributes atb;
-                    if (currentBranchAttributes.Count == 1)
+                    if (atb == null && allAttributes.Count == 1)
                     {
-                        atb = currentBranchAttributes[0].ScriptVariable() as ObjectAttributes;
-                    }
-                    else
-                    {
-                        atb = currentBranchAttributes[j].ScriptVariable() as ObjectAttributes;
+                        atb = allAttributes[0].ScriptVariable() as ObjectAttributes;
                     }
 
-                    //Create current layer get name and color from attribute
                     if (atb != null)
                     {
                         Layer layer = new Layer()
@@ -133,35 +108,18 @@ namespace Headless.Components.Exporters
                             Name = atb.Name
                         };
 
-                        //Get layer index to assign layer to attribute
                         int layerIndex = doc.Layers.Add(layer);
-
-                        //Set layer index to attribute
                         atb.LayerIndex = layerIndex;
                     }
 
-                    //Add geo to doc
                     doc.Objects.Add(geo, atb);
-
-                    //Convert doc to string
                 }
-                string base64String = Helpers.docToBase64(doc, fileEnding);
-
-                //Add additional data to the file for serialization
-                FileData fileData = new FileData() { FileName = fileName.get_Branch(i)[0] as string, Data = base64String, FileType = fileEnding };
-
-                string b64File = JsonConvert.SerializeObject(fileData);
-
-                fileLs.Add(new GH_String(b64File));
-
-                //Free recources
-                doc.Dispose();
-
-                //
-                //OUTPUT
-                //
             }
-            DA.SetData(0, fileLs);
+
+            string base64String = Helpers.docToBase64(doc, fileEnding);
+            FileData fileData = new FileData() { FileName = fileName, Data = base64String, FileType = fileEnding };
+            string b64File = JsonConvert.SerializeObject(fileData);
+            DA.SetData(0, b64File);
         }
 
 
@@ -193,5 +151,30 @@ namespace Headless.Components.Exporters
             public string FileType { get; set; }
         }
 
+    // Overload for GH_Structure data
+    private bool RetrieveData<T>(IGH_DataAccess DA, int index, out GH_Structure<T> data) where T : class, IGH_Goo
+    {
+        data = null;
+        if (!DA.GetDataTree(index, out GH_Structure<T> dataTree))
+        {
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"Failed to get data at index {index}");
+            return false;
+        }
+        data = dataTree;
+        return true;
     }
+
+    // Overload for simple data types like string
+    private bool RetrieveData(IGH_DataAccess DA, int index, out string data)
+    {
+        data = string.Empty;
+        if (!DA.GetData(index, ref data))
+        {
+            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"Failed to get data at index {index}");
+            return false;
+        }
+        return true;
+    }
+    }
+
 }
