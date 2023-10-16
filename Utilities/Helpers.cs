@@ -11,6 +11,7 @@ using Grasshopper;
 using System.Drawing.Drawing2D;
 using Grasshopper.Kernel.Attributes;
 using PdfSharp.Pdf.Content.Objects;
+using ClosedXML.Excel;
 
 
 namespace Headless.Utilities
@@ -51,24 +52,62 @@ namespace Headless.Utilities
             }
         }
 
-        public static string csvToBase64(string csvStr)
+        public static string csvToBase64(string csvString)
         {
-            try
+            // Create a new workbook
+            var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Sheet1");
+
+            // Split the input CSV string by double quotes ("\"\"") to separate sections
+            string[] sections = csvString.Split(new string[] { "\"\"" }, StringSplitOptions.RemoveEmptyEntries);
+
+            // Initialize row index
+            int rowIndex = 1;
+
+            // Process each section
+            foreach (string section in sections)
             {
-                string[,] dataArray = ConvertCsvStringToDataArray(csvStr);
+                // Split the section by line breaks to get rows
+                string[] lines = section.Trim().Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
-                string csvString = ConvertDataArrayToCsvString(dataArray);
+                // Process each line
+                foreach (string line in lines)
+                {
+                    // Split the line by commas to get columns
+                    string[] columns = line.Split(',');
 
-                // Encode the CSV content to Base64
-                string base64Data = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csvString));
-        
+                    // Set the values in the worksheet
+                    for (int col = 0; col < columns.Length; col++)
+                    {
+                        worksheet.Cell(rowIndex, col + 1).Value = columns[col];
+                    }
+
+                    rowIndex++;
+                }
+            }
+            // Save the workbook to a MemoryStream
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                workbook.SaveAs(memoryStream);
+
+                // Convert the MemoryStream to a byte array
+                byte[] xlsxData = memoryStream.ToArray();
+
+                // Convert the XLSX data to a Base64 encoded string
+                string base64Data = Convert.ToBase64String(xlsxData);
+
                 return base64Data;
+                
             }
-            catch (Exception ex)
-            {
-                // Log or rethrow the exception as appropriate
-                throw new Exception("An error occurred while converting CSV to Base64", ex);
-            }
+            // try
+            // {
+            //
+            // }
+            // catch (Exception ex)
+            // {
+            //     // Log or rethrow the exception as appropriate
+            //     throw new Exception("An error occurred while converting CSV to Base64", ex);
+            // }
         }
 
         static string ConvertDataArrayToCsvString(string[,] dataArray)

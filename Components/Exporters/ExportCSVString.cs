@@ -54,7 +54,7 @@ namespace Headless.Components.Exporters
             {
                 FileName = fileName,
                 Data = b64,
-                FileType = ".csv"
+                FileType = ".xlsx"
             };
             
             string b64File = JsonConvert.SerializeObject(fileData);
