@@ -74,6 +74,7 @@ namespace Headless.Components.Exporters
             // Create headless doc
             RhinoDoc doc = RhinoDoc.CreateHeadless(null);
 
+
             // Check attribute count validity
             List<IGH_Goo> allAttributes = objectAttributesList.AllData(true).ToList();
             if (allAttributes.Count != 1 && allAttributes.Count != geometryList.PathCount)
@@ -121,7 +122,6 @@ namespace Headless.Components.Exporters
             string b64File = JsonConvert.SerializeObject(fileData);
             DA.SetData(0, b64File);
         }
-
 
         /// <summary>
         /// Provides an Icon for the component.

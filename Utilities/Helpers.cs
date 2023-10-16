@@ -10,6 +10,7 @@ using Grasshopper.GUI;
 using Grasshopper;
 using System.Drawing.Drawing2D;
 using Grasshopper.Kernel.Attributes;
+using PdfSharp.Pdf.Content.Objects;
 
 
 namespace Headless.Utilities
@@ -49,5 +50,87 @@ namespace Headless.Utilities
                     File.Delete(tempPath);
             }
         }
+
+        public static string csvToBase64(string csvStr)
+        {
+            try
+            {
+                string[,] dataArray = ConvertCsvStringToDataArray(csvStr);
+
+                string csvString = ConvertDataArrayToCsvString(dataArray);
+
+                // Encode the CSV content to Base64
+                string base64Data = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csvString));
+        
+                return base64Data;
+            }
+            catch (Exception ex)
+            {
+                // Log or rethrow the exception as appropriate
+                throw new Exception("An error occurred while converting CSV to Base64", ex);
+            }
+        }
+
+        static string ConvertDataArrayToCsvString(string[,] dataArray)
+        {
+            int numRows = dataArray.GetLength(0);
+            int numCols = dataArray.GetLength(1);
+
+            // Create a StringBuilder to construct the CSV string
+            System.Text.StringBuilder csvBuilder = new System.Text.StringBuilder();
+
+            // Append the header row
+            for (int col = 0; col < numCols; col++)
+            {
+                csvBuilder.Append(dataArray[0, col]);
+                if (col < numCols - 1)
+                {
+                    csvBuilder.Append(",");
+                }
+            }
+            csvBuilder.AppendLine(); // Add a newline after the header
+
+            // Append the data rows
+            for (int row = 1; row < numRows; row++)
+            {
+                for (int col = 0; col < numCols; col++)
+                {
+                    csvBuilder.Append(dataArray[row, col]);
+                    if (col < numCols - 1)
+                    {
+                        csvBuilder.Append(",");
+                    }
+                }
+                csvBuilder.AppendLine(); // Add a newline after each row
+            }
+
+            return csvBuilder.ToString();
+        }
+
+        static string[,] ConvertCsvStringToDataArray(string csvString)
+        {
+            // Split the CSV string into lines
+            string[] lines = csvString.Split('\n');
+
+            // Determine the number of rows and columns
+            int numRows = lines.Length;
+            int numCols = lines[0].Split(',').Length;
+
+            // Initialize the dataArray with the determined dimensions
+            string[,] dataArray = new string[numRows, numCols];
+
+            // Populate the dataArray with values from the CSV
+            for (int row = 0; row < numRows; row++)
+            {
+                string[] values = lines[row].Split(',');
+                for (int col = 0; col < numCols; col++)
+                {
+                    dataArray[row, col] = values[col];
+                }
+            }
+
+            return dataArray;
+        }
     }
+    
 }

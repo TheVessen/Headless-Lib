@@ -8,6 +8,10 @@
     <TargetExt>.gha</TargetExt>
     <PackageIcon>Resources\libIcon.png</PackageIcon>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+  </PropertyGroup>
 	
   <ItemGroup>
     <None Remove="Resources\libIcon.png" />
@@ -27,6 +31,7 @@
     <PackageReference Include="Grasshopper" Version="7.32.23221.10241" IncludeAssets="compile;build" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="PdfSharp" Version="1.50.5147" />
+    <PackageReference Include="System.Resources.Extensions" Version="8.0.0-rc.2.23479.6" />
   </ItemGroup>
   
   <ItemGroup>
