@@ -4,6 +4,15 @@
       "commandName": "Executable",
       "executablePath": "C:\\Program Files\\Rhino 7\\System\\Rhino.exe",
       "commandLineArgs": ""
+    },
+    "ConsoleApp": {
+      "commandName": "Project",
+      "commandLineArgs": "",
+      "launchBrowser": false,
+      "applicationUrl": "",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
     }
   }
 }

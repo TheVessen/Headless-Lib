@@ -54,7 +54,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="Components\PDF\" />
+    <Compile Remove="Components\Pdf\**" />
   </ItemGroup>
 
 <!--	<PropertyGroup Condition="$(Configuration) == 'Debug' AND $([MSBuild]::IsOSPlatform(Windows))">-->
