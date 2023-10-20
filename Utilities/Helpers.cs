@@ -10,7 +10,6 @@ using Grasshopper.GUI;
 using Grasshopper;
 using System.Drawing.Drawing2D;
 using Grasshopper.Kernel.Attributes;
-using PdfSharp.Pdf.Content.Objects;
 using ClosedXML.Excel;
 
 

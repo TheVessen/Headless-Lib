@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
@@ -7,7 +8,6 @@ using Headless.Lib;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Rhino.Geometry;
 using SkiaSharp;
 
 namespace Headless.Components.PDF
@@ -29,8 +29,9 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("CurveData", "CD", "CurveData", GH_ParamAccess.list);
             pManager.AddTextParameter("Page Tile", "PT", "", GH_ParamAccess.item, "Title");
+            pManager.AddGenericParameter("CurveData", "CD", "CurveData", GH_ParamAccess.list);
+            pManager.AddGenericParameter("TextBlob", "TB", "Text Blob", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -47,32 +48,48 @@ namespace Headless.Components.PDF
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            QuestPDF.Settings.License = LicenseType.Community;
+
             string pageTile = string.Empty;
 
+            List<GH_ObjectWrapper> curveDataObjects = new List<GH_ObjectWrapper>();
+            List<GH_ObjectWrapper> textBlobObjects = new List<GH_ObjectWrapper>();
 
-            List<GH_ObjectWrapper> cData = new List<GH_ObjectWrapper>();
+            if (!DA.GetData(0, ref pageTile)) return;
 
-            if (!DA.GetDataList(0, cData)) return; // Use return here, or handle the error appropriately.
-            if (!DA.GetData(1, ref pageTile)) return;
-
-            var pathData = cData.Select(v => (v.Value as SkiaCurveData)).ToList();
-
-            var doc = Document.Create(pdf =>
+            if (!DA.GetDataList(1, curveDataObjects))
             {
-                pdf.Page(page =>
-                {
-                    page.Size(PageSizes.A3.Landscape());
+                // Handle error or provide feedback to the user.
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Failed to retrieve curve data.");
+                return;
+            }
 
-                    page.Header().Text(text =>
+            if (!DA.GetDataList(2, textBlobObjects))
+            {
+                // Handle error or provide feedback to the user.
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Failed to retrieve text blobs.");
+                return;
+            }
+
+            // Convert data to the desired types
+            var pathData = curveDataObjects.Select(v => v.Value as SkiaCurveData).ToList();
+            var textBlobs = textBlobObjects.Select(v => v.Value as TextBlob).ToList();
+            
+            var doc = Document.Create(document =>
+            {
+                document.Page(pg =>
+                {
+                    pg.Size(2000,2000);
+
+                    pg.Header().Text(textTitle =>
                     {
-                        text.Span(pageTile)
+                        textTitle.Span(pageTile)
                             .FontSize(30).FontColor(Colors.Black);
                     });
-                    
-                    page.Margin(2, Unit.Centimetre);
 
-                    // Add paths
-                    page.Content().Canvas((canvas, space) =>
+                    pg.Margin(1, Unit.Centimetre);
+
+                    pg.Content().Canvas((canvas, space) =>
                     {
                         // Calculate the combined bounding box of all paths.
                         SKRect combinedBounds = new SKRect();
@@ -80,27 +97,27 @@ namespace Headless.Components.PDF
                         {
                             combinedBounds = SKRect.Union(combinedBounds, curveData.Path.Bounds);
                         }
-                        
-
+                    
                         // Calculate the scale factor to fit bounding box in the canvas.
                         float xScale = space.Width / combinedBounds.Width;
                         float yScale = space.Height / combinedBounds.Height;
                         float scale = Math.Min(xScale, yScale);
-
+                    
                         // Create a scaling matrix.
                         var scaleMatrix = SKMatrix.CreateScale(scale, scale);
-                        
+                    
                         float scaledWidth = combinedBounds.Width * scale;
                         float scaledHeight = combinedBounds.Height * scale;
-
+                    
                         // Calculate the translation to center the scaled bounding box on the canvas.
                         float dx = (space.Width - scaledWidth) / 2f - combinedBounds.Left * scale;
                         float dy = (space.Height - scaledHeight) / 2f - combinedBounds.Top * scale;
-
+                    
                         // Create a translation matrix.
                         var translationMatrix = SKMatrix.CreateTranslation(dx, dy);
-                        var combinedMatrix = SKMatrix.Concat(translationMatrix, scaleMatrix); // Concatenate matrices: first scale, then translate.
-
+                        var combinedMatrix =
+                            SKMatrix.Concat(translationMatrix,
+                                scaleMatrix); // Concatenate matrices: first scale, then translate.
                         // Apply the combined transformation to each path and draw it.
                         foreach (var curveData in pathData)
                         {
@@ -110,10 +127,37 @@ namespace Headless.Components.PDF
                                 canvas.DrawPath(transformedPath, curveData.Paint);
                             }
                         }
+                        var origin = new SKPoint() { X = space.Width / 2, Y = space.Height / 2 };
+
+                        foreach (var tb in textBlobs)
+                        {
+                            // Create the path for the original position
+                            var newPath = tb.TextPaint.GetTextPath(tb.Text, tb.Position.X, tb.Position.Y);
+    
+                            // Get bounds of the path
+                            SKRect pathBounds = newPath.Bounds;
+    
+                            // Calculate how much you need to adjust the position to center the text path
+                            float dxx = tb.Position.X - (pathBounds.Width / 2 + pathBounds.Left);
+                            float dyy = tb.Position.Y - (pathBounds.Height / 2 + pathBounds.Top);
+
+                            // Create a translation matrix for the adjustment
+                            var adjustmentMatrix = SKMatrix.CreateTranslation(dxx, dyy);
+
+                            // Apply the adjustment to the path
+                            newPath.Transform(adjustmentMatrix);
+    
+                            using (var transformedPath = new SKPath())
+                            {
+                                newPath.Transform(combinedMatrix, transformedPath);
+                                canvas.DrawPath(transformedPath, tb.TextPaint);
+                            }
+                        }
                     });
                 });
             });
 
+            var d = doc.GeneratePdf();
 
             DA.SetData(0, doc);
         }

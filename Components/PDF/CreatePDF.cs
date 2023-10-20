@@ -2,15 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using SkiaSharp;
-using QuestPDF;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Rhino.Geometry;
 
 namespace Headless.Components.PDF
 {
@@ -49,8 +44,9 @@ namespace Headless.Components.PDF
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             QuestPDF.Settings.License = LicenseType.Community;
+
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string outputPath = System.IO.Path.Combine(desktopPath, "output.pdf");
+            string outputPath = Path.Combine(desktopPath, "output.pdf");
 
             List<GH_ObjectWrapper> wPath = new List<GH_ObjectWrapper>();
 
@@ -58,7 +54,8 @@ namespace Headless.Components.PDF
 
             var pages = wPath.Select(v => (v.Value as Document)).ToList();
 
-            var pdfData = Document.Merge(pages).GeneratePdf();
+            var pdfData = pages[0].GeneratePdf();
+            // var pdfData = Document.Merge(pages).GeneratePdf();
 
             string base64String = Convert.ToBase64String(pdfData);
             DA.SetData(0, base64String);

@@ -71,6 +71,8 @@ namespace Headless.Components.PDF
 
             drawing.StrokeWidth = strokeWidth;
 
+            drawing.IsAntialias = true;
+
             DA.SetData(0, drawing);
         }
 

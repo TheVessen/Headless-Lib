@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Types;
 using Headless.Lib;
 using Rhino.Geometry;
 using SkiaSharp;
