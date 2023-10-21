@@ -1,32 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using Grasshopper.Kernel;
-using Headless.Lib;
-using Headless.Utilities;
-using Newtonsoft.Json;
+using Grasshopper.Kernel.Special;
+using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
-namespace Headless.Components.Exporters
+namespace Headless.Components.PDF
 {
-    public class ExportCSVString : GH_Component
+    public class PageSitze : GH_Component
     {
         /// <summary>
-        /// Initializes a new instance of the ExportCSVString class.
+        /// Initializes a new instance of the PageSitze class.
         /// </summary>
-        public ExportCSVString()
-          : base("ExportCSVString", "ECSV",
-              "Exports a csv string to base64",
-              "Headless", "Output")
+        public PageSitze()
+            : base("PageSitze", "Nickname",
+                "Description",
+                "Headless", "PDF")
         {
-        }
-        
-        /// <summary>
-        /// Comment out if you need the output params
-        /// </summary>
-        public override void CreateAttributes()
-        {
-            m_attributes = new NoOutputComponent<ExportCSVString>(this);
         }
 
         /// <summary>
@@ -34,8 +25,7 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("Data", "D", "CSV String", GH_ParamAccess.item);
-            pManager.AddTextParameter("FileName", "FN", "", GH_ParamAccess.item);
+            pManager.AddTextParameter("PageFormat", "VL", "Connect a Value List here", GH_ParamAccess.item, "210 x 297");
         }
 
         /// <summary>
@@ -43,7 +33,8 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("Base64", "B64", "Base 64 string output", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Height", "H", "Page Height", GH_ParamAccess.item);
+            pManager.AddNumberParameter("Width", "W", "Page Width", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -52,28 +43,29 @@ namespace Headless.Components.Exporters
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            string data = string.Empty;
-            string fileName = string.Empty;
-            DA.GetData(0, ref data);
-            DA.GetData(1, ref fileName);
+            string textFormat = "210 x 297";
 
-            var b64 = Helpers.csvToBase64(data);
+            DA.GetData(0, ref textFormat);
 
-            FileData fileData = new FileData()
+            string[] dimensions = textFormat.Split('x');
+            if (dimensions.Length == 2)
             {
-                FileName = fileName,
-                Base64String = b64,
-                FileType = ".xlsx"
-            };
-            
-            string b64File = JsonConvert.SerializeObject(fileData);
+                string widthString = dimensions[0].Trim();
+                string heightString = dimensions[1].Trim();
 
+                if (double.TryParse(widthString, out double width) && double.TryParse(heightString, out double height))
+                {
 
-            DA.SetData(0, b64File);
+                    DA.SetData(0, width);
+                    DA.SetData(1, height);
+                }
+                else
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Failed to parse dimensions to doubles.");
+                }
+            }
         }
         
-        
-
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
@@ -92,8 +84,7 @@ namespace Headless.Components.Exporters
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("843014D9-216E-45D0-8C08-4B82D45A0E58"); }
+            get { return new Guid("6F9DE34C-FFE0-4200-816A-051027E21B91"); }
         }
     }
-
 }

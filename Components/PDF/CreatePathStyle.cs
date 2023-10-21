@@ -7,12 +7,12 @@ using SkiaSharp;
 
 namespace Headless.Components.PDF
 {
-    public class PathStyle : GH_Component
+    public class CreatePathStyle : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the PathStyle class.
         /// </summary>
-        public PathStyle()
+        public CreatePathStyle()
             : base("PathStyle", "Nickname",
                 "Description",
                 "Headless", "PDF")

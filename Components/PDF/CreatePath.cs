@@ -24,7 +24,7 @@ namespace Headless.Components.PDF
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddCurveParameter("Curve", "C", "Input curves", GH_ParamAccess.item);
-            pManager.AddGenericParameter("SKPaint", "P", "The Skia paint properties", GH_ParamAccess.item);
+            pManager.AddGenericParameter("Paint", "P", "The Skia paint properties", GH_ParamAccess.item);
         }
 
         /// <summary>

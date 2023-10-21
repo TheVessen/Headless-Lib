@@ -30,8 +30,12 @@ namespace Headless.Components.PDF
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("Page Tile", "PT", "", GH_ParamAccess.item, "Title");
-            pManager.AddGenericParameter("CurveData", "CD", "CurveData", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Paths", "CD", "CurveData", GH_ParamAccess.list);
             pManager.AddGenericParameter("TextBlob", "TB", "Text Blob", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Height", "H", "Page height", GH_ParamAccess.item, 1000);
+            pManager.AddNumberParameter("Width", "W", "Page width", GH_ParamAccess.item, 1000);
+            pManager.AddNumberParameter("PageMargin", "PM", "Margin on the sides in mm", GH_ParamAccess.item, 10);
+            pManager.AddNumberParameter("TitleSize", "TS", "Size for title", GH_ParamAccess.item, 30);
         }
 
         /// <summary>
@@ -51,6 +55,10 @@ namespace Headless.Components.PDF
             QuestPDF.Settings.License = LicenseType.Community;
 
             string pageTile = string.Empty;
+            double height = 1000;
+            double widht = 1000;
+            double margin = 10;
+            double titleSize = 30;
 
             List<GH_ObjectWrapper> curveDataObjects = new List<GH_ObjectWrapper>();
             List<GH_ObjectWrapper> textBlobObjects = new List<GH_ObjectWrapper>();
@@ -70,7 +78,13 @@ namespace Headless.Components.PDF
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Failed to retrieve text blobs.");
                 return;
             }
-
+            
+            if (!DA.GetData(3, ref height)) return;
+            if (!DA.GetData(4, ref widht)) return;
+            if (!DA.GetData(5, ref margin)) return;
+            if (!DA.GetData(6, ref titleSize)) return;
+            
+            
             // Convert data to the desired types
             var pathData = curveDataObjects.Select(v => v.Value as SkiaCurveData).ToList();
             var textBlobs = textBlobObjects.Select(v => v.Value as TextBlob).ToList();
@@ -79,16 +93,16 @@ namespace Headless.Components.PDF
             {
                 document.Page(pg =>
                 {
-                    pg.Size(2000,2000);
+                    pg.Size(Convert.ToSingle(widht),Convert.ToSingle(height), Unit.Millimetre);
 
                     pg.Header().Text(textTitle =>
                     {
                         textTitle.Span(pageTile)
-                            .FontSize(30).FontColor(Colors.Black);
+                            .FontSize(Convert.ToSingle(titleSize)).FontColor(Colors.Black);
                     });
 
-                    pg.Margin(1, Unit.Centimetre);
-
+                    pg.Margin(Convert.ToSingle(margin), Unit.Millimetre);
+                    
                     pg.Content().Canvas((canvas, space) =>
                     {
                         // Calculate the combined bounding box of all paths.
@@ -127,30 +141,25 @@ namespace Headless.Components.PDF
                                 canvas.DrawPath(transformedPath, curveData.Paint);
                             }
                         }
-                        var origin = new SKPoint() { X = space.Width / 2, Y = space.Height / 2 };
-
                         foreach (var tb in textBlobs)
                         {
-                            // Create the path for the original position
-                            var newPath = tb.TextPaint.GetTextPath(tb.Text, tb.Position.X, tb.Position.Y);
-    
-                            // Get bounds of the path
-                            SKRect pathBounds = newPath.Bounds;
-    
-                            // Calculate how much you need to adjust the position to center the text path
-                            float dxx = tb.Position.X - (pathBounds.Width / 2 + pathBounds.Left);
-                            float dyy = tb.Position.Y - (pathBounds.Height / 2 + pathBounds.Top);
+                            
+                            // Measure the width and height of the text
 
-                            // Create a translation matrix for the adjustment
-                            var adjustmentMatrix = SKMatrix.CreateTranslation(dxx, dyy);
-
-                            // Apply the adjustment to the path
-                            newPath.Transform(adjustmentMatrix);
-    
+                            var newP = tb.TextPaint.GetTextPath(tb.Text, tb.Position.X, tb.Position.Y*-1);
+                            
                             using (var transformedPath = new SKPath())
                             {
-                                newPath.Transform(combinedMatrix, transformedPath);
-                                canvas.DrawPath(transformedPath, tb.TextPaint);
+                                newP.Transform(combinedMatrix, transformedPath);
+                                
+                                SKRect pathBounds = transformedPath.Bounds;
+                                float centerX = pathBounds.MidX;
+                                
+                                SKRect textBounds = new SKRect();
+                                tb.TextPaint.MeasureText(tb.Text, ref textBounds);
+                                float centerY = pathBounds.MidY + textBounds.Height / 2;
+                                
+                                canvas.DrawText(tb.Text, centerX, centerY, tb.TextPaint);
                             }
                         }
                     });

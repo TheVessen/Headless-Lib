@@ -11,6 +11,7 @@ using System.Linq;
 using Headless.Utilities;
 using System.Collections;
 using Grasshopper.Documentation;
+using Headless.Lib;
 
 namespace Headless.Components.Exporters
 {
@@ -118,7 +119,7 @@ namespace Headless.Components.Exporters
             }
 
             string base64String = Helpers.docToBase64(doc, fileEnding);
-            FileData fileData = new FileData() { FileName = fileName, Data = base64String, FileType = fileEnding };
+            FileData fileData = new FileData() { FileName = fileName, Base64String = base64String, FileType = fileEnding };
             string b64File = JsonConvert.SerializeObject(fileData);
             DA.SetData(0, b64File);
         }
@@ -143,13 +144,7 @@ namespace Headless.Components.Exporters
         {
             get { return new Guid("A51C8F6A-D422-4387-8170-F9F34D8E5351"); }
         }
-
-        class FileData
-        {
-            public string FileName { get; set; }
-            public string Data { get; set; }
-            public string FileType { get; set; }
-        }
+        
 
     // Overload for GH_Structure data
     private bool RetrieveData<T>(IGH_DataAccess DA, int index, out GH_Structure<T> data) where T : class, IGH_Goo

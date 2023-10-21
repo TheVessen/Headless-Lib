@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using Grasshopper.Kernel;
 using Headless.Lib;
 using Rhino.Geometry;
@@ -25,7 +26,9 @@ namespace Headless.Components.PDF
         {
             pManager.AddTextParameter("Text", "T", "Text to add to the pdf", GH_ParamAccess.item);
             pManager.AddPointParameter("Point", "P", "Position of the text", GH_ParamAccess.item);
-            // pManager.AddGenericParameter("TextPaint", "TP", "Style the Text", GH_ParamAccess.item);
+            pManager.AddNumberParameter("TextSize", "TS", "Number for text size", GH_ParamAccess.item, 10);
+            pManager.AddColourParameter("Color", "C", "Col", GH_ParamAccess.item, Color.Black);
+            pManager.AddTextParameter("Font", "F", "Font", GH_ParamAccess.item, "Arial");
         }
 
         /// <summary>
@@ -45,16 +48,22 @@ namespace Headless.Components.PDF
             
             string text = string.Empty;
             Point3d pt = Point3d.Unset;
+            double textSize = 10;
+            Color color = Color.Black;
+            string font = "Arial";
 
             if (!DA.GetData(0, ref text)) return;
             if (!DA.GetData(1, ref pt)) return;
+            if (!DA.GetData(2, ref textSize)) return;
+            if (!DA.GetData(3, ref color)) return;
+            if (!DA.GetData(4, ref font)) return;
             
             // Define the text, paint, and position for the positioned run
             SKPaint textPaint = new SKPaint
             {
-                TextSize = 24,
-                Color = SKColors.Black,
-                Typeface = SKTypeface.Default,
+                TextSize = Convert.ToSingle(textSize),
+                Color = new SKColor(color.R, color.G, color.B, color.A),
+                Typeface = SKTypeface.FromFamilyName(font),
                 TextAlign = SKTextAlign.Center,
             };
             
@@ -70,9 +79,6 @@ namespace Headless.Components.PDF
 
         }
 
-        // string, float, float, SkiaSharp.SKFont, SkiaSharp.SKPaint
-        
-        
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>

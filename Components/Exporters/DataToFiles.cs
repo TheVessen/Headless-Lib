@@ -8,6 +8,7 @@ using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Headless.Lib;
 using Headless.Utilities;
 
 namespace Headless.Components.Exporters
@@ -147,7 +148,7 @@ namespace Headless.Components.Exporters
                 FileData fileData = new FileData()
                 {
                     FileName = att.Name,
-                    Data = base64String,
+                    Base64String = base64String,
                     FileType = fileEnding
                 };
 
@@ -188,13 +189,7 @@ namespace Headless.Components.Exporters
         {
             get { return new Guid("8821F5CA-316E-44FA-B0D0-E3D8527952E3"); }
         }
-
-        class FileData
-        {
-            public string FileName { get; set; }
-            public string Data { get; set; }
-            public string FileType { get; set; }
-        }
+        
 
     }
 }
