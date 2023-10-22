@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Headless.Components.Exporters;
@@ -10,6 +11,7 @@ using Headless.Utilities;
 using Newtonsoft.Json;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
+using Rhino.UI.Controls;
 
 namespace Headless.Components.PDF
 {
@@ -24,7 +26,7 @@ namespace Headless.Components.PDF
                 "Headless", "PDF")
         {
         }
-        
+
         /// <summary>
         /// Comment out if you need the output params
         /// </summary>
@@ -38,8 +40,14 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGenericParameter("Page", "P", "Page", GH_ParamAccess.list);
-            pManager.AddTextParameter("PDF Name" ,"PN", "Name of the PDF that should be used to download later",GH_ParamAccess.item);
+            pManager.AddTextParameter("PDF Name", "PN", "Name of the PDF that should be used to download later",
+                GH_ParamAccess.item);
+            pManager.AddGenericParameter("Pages", "P", "Page", GH_ParamAccess.list);
+            pManager.AddBooleanParameter("Create Preview", "CP", "Create a preview of the PDF document",
+                GH_ParamAccess.item, false);
+            pManager.AddTextParameter("Document path", "DP", "Path to the document", GH_ParamAccess.item);
+            
+            pManager[3].Optional = true;
         }
 
         /// <summary>
@@ -58,32 +66,42 @@ namespace Headless.Components.PDF
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            //For testing
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
 
             List<GH_ObjectWrapper> wPath = new List<GH_ObjectWrapper>();
             string fileName = string.Empty;
-            string outputPath = Path.Combine(desktopPath, $"{fileName}.pdf");
+            string outputPath = string.Empty;
+            bool createPreview = false;
 
-            if (!DA.GetDataList(0, wPath)) return; // Use return here, or handle the error appropriately.
-            if (!DA.GetData(1, ref fileName)) return; // Use return here, or handle the error appropriately.
+            if (!DA.GetData(0, ref fileName)) return;
+            if (!DA.GetDataList(1, wPath)) return;
+            if (!DA.GetData(2, ref createPreview)) return;
+            if (!DA.GetData(3, ref outputPath)) return;
 
             var pages = wPath.Select(v => (v.Value as Document)).ToList();
 
             var pdfData = Document.Merge(pages).GeneratePdf();
             string base64String = Convert.ToBase64String(pdfData);
+            
+            string path = Path.Combine(outputPath, fileName + ".pdf");
 
+            //Create file object
             var fileData = new FileData()
             {
                 FileName = fileName,
                 Base64String = base64String,
                 FileType = ".pdf"
             };
-            
+
             string b64File = JsonConvert.SerializeObject(fileData);
 
+            if (createPreview)
+            {
+                File.WriteAllBytes(path, pdfData);
+            }
+            
             DA.SetData(0, b64File);
-            File.WriteAllBytes(outputPath, pdfData);
+            
         }
 
         /// <summary>

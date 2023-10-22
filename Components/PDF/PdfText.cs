@@ -1,22 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
+using SkiaSharp;
 
 namespace Headless.Components.PDF
 {
-    public class PageSitze : GH_Component
+    public class PdfText : GH_Component
     {
         /// <summary>
-        /// Initializes a new instance of the PageSitze class.
+        /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
-        public PageSitze()
-            : base("PageSitze", "Nickname",
-                "Description",
-                "Headless", "PDF")
+        public PdfText()
+          : base("PdfText", "PT",
+              "Description",
+              "Headless", "PDF")
+
         {
         }
 
@@ -25,7 +26,10 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("PageFormat", "VL", "Connect a Value List here", GH_ParamAccess.item, "210 x 297");
+            pManager.AddTextParameter("Text", "T", "Text to be written", GH_ParamAccess.item );
+            pManager.AddGenericParameter("Text Style", "TS", "Text Style", GH_ParamAccess.item);
+            pManager.AddNumberParameter("TextFromTop", "TFT", "Text From Top", GH_ParamAccess.item, 0.0);
+            pManager.AddNumberParameter("TextFromLeft", "TFL", "Text From Left", GH_ParamAccess.item, 0.0);
         }
 
         /// <summary>
@@ -33,8 +37,8 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddNumberParameter("Height", "H", "Page Height", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Width", "W", "Page Width", GH_ParamAccess.item);
+                
+                pManager.AddGenericParameter("TextElement", "TE", "Text Element", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -43,29 +47,24 @@ namespace Headless.Components.PDF
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            string textFormat = "210 x 297";
+            
+            string text = string.Empty;
+            GH_ObjectWrapper _textStyle = null;
+            double textFromTop = 0.0;
+            double textFromLeft = 0.0;
 
-            if (!DA.GetData(0, ref textFormat)) return;
+            if (!DA.GetData(0, ref text)) return;
+            if (!DA.GetData(1, ref _textStyle)) return;
+            if (!DA.GetData(2, ref textFromTop)) return;
+            if (!DA.GetData(3, ref textFromLeft)) return;
+            
+            var paint = _textStyle.Value as SKPaint;
 
-            string[] dimensions = textFormat.Split('x');
-            if (dimensions.Length == 2)
-            {
-                string widthString = dimensions[0].Trim();
-                string heightString = dimensions[1].Trim();
+            var textElement = new Lib.PdfTextObject(text, paint, textFromTop, textFromLeft);
 
-                if (double.TryParse(widthString, out double width) && double.TryParse(heightString, out double height))
-                {
-
-                    DA.SetData(0, width);
-                    DA.SetData(1, height);
-                }
-                else
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Failed to parse dimensions to doubles.");
-                }
-            }
+            DA.SetData(0, textElement);
         }
-        
+
         /// <summary>
         /// Provides an Icon for the component.
         /// </summary>
@@ -84,7 +83,7 @@ namespace Headless.Components.PDF
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("6F9DE34C-FFE0-4200-816A-051027E21B91"); }
+            get { return new Guid("E6565124-FE51-4740-A082-23E36575D421"); }
         }
     }
 }

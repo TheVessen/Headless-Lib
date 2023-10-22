@@ -34,8 +34,8 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("Data", "D", "CSV String", GH_ParamAccess.item);
             pManager.AddTextParameter("FileName", "FN", "", GH_ParamAccess.item);
+            pManager.AddTextParameter("Data", "D", "CSV String", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -54,8 +54,8 @@ namespace Headless.Components.Exporters
         {
             string data = string.Empty;
             string fileName = string.Empty;
-            DA.GetData(0, ref data);
-            DA.GetData(1, ref fileName);
+            DA.GetData(0, ref fileName);
+            DA.GetData(1, ref data);
 
             var b64 = Helpers.csvToBase64(data);
 

@@ -29,13 +29,18 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("Page Tile", "PT", "", GH_ParamAccess.item, "Title");
-            pManager.AddGenericParameter("Paths", "CD", "CurveData", GH_ParamAccess.list);
-            pManager.AddGenericParameter("TextBlob", "TB", "Text Blob", GH_ParamAccess.list);
+            pManager.AddTextParameter("Page Tile", "PT", "", GH_ParamAccess.item, "");
+            pManager.AddGenericParameter("Paths", "CD", "Paths for the page -> They get scaled all together to fit on the page canvas", GH_ParamAccess.list);
+            pManager.AddGenericParameter("TextPath", "TB", "A text that will be scaled together with the paths so that they end up in the same position as the scaled and transformed paths", GH_ParamAccess.list);
             pManager.AddNumberParameter("Height", "H", "Page height", GH_ParamAccess.item, 1000);
             pManager.AddNumberParameter("Width", "W", "Page width", GH_ParamAccess.item, 1000);
             pManager.AddNumberParameter("PageMargin", "PM", "Margin on the sides in mm", GH_ParamAccess.item, 10);
             pManager.AddNumberParameter("TitleSize", "TS", "Size for title", GH_ParamAccess.item, 30);
+            pManager.AddGenericParameter("Text", "t", "Normal text to add to the page", GH_ParamAccess.list);
+            
+            pManager[1].Optional = true;
+            pManager[2].Optional = true;
+            pManager[7].Optional = true;
         }
 
         /// <summary>
@@ -62,32 +67,21 @@ namespace Headless.Components.PDF
 
             List<GH_ObjectWrapper> curveDataObjects = new List<GH_ObjectWrapper>();
             List<GH_ObjectWrapper> textBlobObjects = new List<GH_ObjectWrapper>();
-
-            if (!DA.GetData(0, ref pageTile)) return;
-
-            if (!DA.GetDataList(1, curveDataObjects))
-            {
-                // Handle error or provide feedback to the user.
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Failed to retrieve curve data.");
-                return;
-            }
-
-            if (!DA.GetDataList(2, textBlobObjects))
-            {
-                // Handle error or provide feedback to the user.
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Failed to retrieve text blobs.");
-                return;
-            }
+            List<GH_ObjectWrapper> textObject = new List<GH_ObjectWrapper>();
             
+            if (!DA.GetData(0, ref pageTile)) return;
+            if (!DA.GetDataList(1, curveDataObjects)) return;
+            if (!DA.GetDataList(2, textBlobObjects)) return;
             if (!DA.GetData(3, ref height)) return;
             if (!DA.GetData(4, ref widht)) return;
             if (!DA.GetData(5, ref margin)) return;
             if (!DA.GetData(6, ref titleSize)) return;
-            
+            if (!DA.GetDataList(7,  textObject)) return;
             
             // Convert data to the desired types
             var pathData = curveDataObjects.Select(v => v.Value as SkiaCurveData).ToList();
             var textBlobs = textBlobObjects.Select(v => v.Value as TextBlob).ToList();
+            var textElements = textObject.Select(v => v.Value as Lib.PdfTextObject).ToList();
             
             var doc = Document.Create(document =>
             {
@@ -95,11 +89,15 @@ namespace Headless.Components.PDF
                 {
                     pg.Size(Convert.ToSingle(widht),Convert.ToSingle(height), Unit.Millimetre);
 
-                    pg.Header().Text(textTitle =>
+                    if (pageTile != string.Empty | pageTile != "")
                     {
-                        textTitle.Span(pageTile)
-                            .FontSize(Convert.ToSingle(titleSize)).FontColor(Colors.Black);
-                    });
+                        pg.Header().Text(textTitle =>
+                        {
+                            textTitle.Span(pageTile)
+                                .FontSize(Convert.ToSingle(titleSize)).FontColor(Colors.Black);
+                        });
+                    }
+                    
 
                     pg.Margin(Convert.ToSingle(margin), Unit.Millimetre);
                     
@@ -110,6 +108,14 @@ namespace Headless.Components.PDF
                         foreach (var curveData in pathData)
                         {
                             combinedBounds = SKRect.Union(combinedBounds, curveData.Path.Bounds);
+                        }
+
+                        if (textElements.Count != 0)
+                        {
+                            foreach (var textElement in textElements)
+                            {
+                                canvas.DrawText(textElement.Text, textElement.TextFromTop, textElement.TextFromLeft, textElement.TextStyle);
+                            }
                         }
                     
                         // Calculate the scale factor to fit bounding box in the canvas.
@@ -129,9 +135,8 @@ namespace Headless.Components.PDF
                     
                         // Create a translation matrix.
                         var translationMatrix = SKMatrix.CreateTranslation(dx, dy);
-                        var combinedMatrix =
-                            SKMatrix.Concat(translationMatrix,
-                                scaleMatrix); // Concatenate matrices: first scale, then translate.
+                        // Concatenate matrices: first scale, then translate.
+                        var combinedMatrix = SKMatrix.Concat(translationMatrix, scaleMatrix); 
                         // Apply the combined transformation to each path and draw it.
                         foreach (var curveData in pathData)
                         {
@@ -143,9 +148,7 @@ namespace Headless.Components.PDF
                         }
                         foreach (var tb in textBlobs)
                         {
-                            
                             // Measure the width and height of the text
-
                             var newP = tb.TextPaint.GetTextPath(tb.Text, tb.Position.X, tb.Position.Y*-1);
                             
                             using (var transformedPath = new SKPath())

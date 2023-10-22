@@ -27,7 +27,7 @@ namespace Headless.Components.PDF
             pManager.AddTextParameter("Text", "T", "Text to add to the pdf", GH_ParamAccess.item);
             pManager.AddPointParameter("Point", "P", "Position of the text", GH_ParamAccess.item);
             pManager.AddNumberParameter("TextSize", "TS", "Number for text size", GH_ParamAccess.item, 10);
-            pManager.AddColourParameter("Color", "C", "Col", GH_ParamAccess.item, Color.Black);
+            pManager.AddColourParameter("Color", "C", "Color of the font", GH_ParamAccess.item, Color.Black);
             pManager.AddTextParameter("Font", "F", "Font", GH_ParamAccess.item, "Arial");
         }
 
@@ -65,6 +65,7 @@ namespace Headless.Components.PDF
                 Color = new SKColor(color.R, color.G, color.B, color.A),
                 Typeface = SKTypeface.FromFamilyName(font),
                 TextAlign = SKTextAlign.Center,
+                IsAntialias = true,
             };
             
             SKPoint positions = new SKPoint { X = Convert.ToSingle(pt.X), Y = Convert.ToSingle(pt.Y) };
@@ -72,7 +73,7 @@ namespace Headless.Components.PDF
             {
                 Position = positions,
                 Text = text,
-                TextPaint = textPaint
+                TextPaint = textPaint,
             };
 
             DA.SetData(0, tb);
