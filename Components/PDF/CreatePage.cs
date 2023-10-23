@@ -70,13 +70,13 @@ namespace Headless.Components.PDF
             List<GH_ObjectWrapper> textObject = new List<GH_ObjectWrapper>();
             
             if (!DA.GetData(0, ref pageTile)) return;
-            if (!DA.GetDataList(1, curveDataObjects)) return;
-            if (!DA.GetDataList(2, textBlobObjects)) return;
+            DA.GetDataList(1, curveDataObjects);
+            DA.GetDataList(2, textBlobObjects);
             if (!DA.GetData(3, ref height)) return;
             if (!DA.GetData(4, ref widht)) return;
             if (!DA.GetData(5, ref margin)) return;
             if (!DA.GetData(6, ref titleSize)) return;
-            if (!DA.GetDataList(7,  textObject)) return;
+            DA.GetDataList(7, textObject);
             
             // Convert data to the desired types
             var pathData = curveDataObjects.Select(v => v.Value as SkiaCurveData).ToList();
@@ -138,38 +138,43 @@ namespace Headless.Components.PDF
                         // Concatenate matrices: first scale, then translate.
                         var combinedMatrix = SKMatrix.Concat(translationMatrix, scaleMatrix); 
                         // Apply the combined transformation to each path and draw it.
-                        foreach (var curveData in pathData)
+                        if (pathData.Count != 0)
                         {
-                            using (var transformedPath = new SKPath())
+                            foreach (var curveData in pathData)
                             {
-                                curveData.Path.Transform(combinedMatrix, transformedPath);
-                                canvas.DrawPath(transformedPath, curveData.Paint);
+                                using (var transformedPath = new SKPath())
+                                {
+                                    curveData.Path.Transform(combinedMatrix, transformedPath);
+                                    canvas.DrawPath(transformedPath, curveData.Paint);
+                                }
                             }
                         }
-                        foreach (var tb in textBlobs)
+
+                        if (textBlobs.Count != 0)
                         {
-                            // Measure the width and height of the text
-                            var newP = tb.TextPaint.GetTextPath(tb.Text, tb.Position.X, tb.Position.Y*-1);
-                            
-                            using (var transformedPath = new SKPath())
+                            foreach (var tb in textBlobs)
                             {
-                                newP.Transform(combinedMatrix, transformedPath);
-                                
-                                SKRect pathBounds = transformedPath.Bounds;
-                                float centerX = pathBounds.MidX;
-                                
-                                SKRect textBounds = new SKRect();
-                                tb.TextPaint.MeasureText(tb.Text, ref textBounds);
-                                float centerY = pathBounds.MidY + textBounds.Height / 2;
-                                
-                                canvas.DrawText(tb.Text, centerX, centerY, tb.TextPaint);
+                                // Measure the width and height of the text
+                                var newP = tb.TextPaint.GetTextPath(tb.Text, tb.Position.X, tb.Position.Y * -1);
+
+                                using (var transformedPath = new SKPath())
+                                {
+                                    newP.Transform(combinedMatrix, transformedPath);
+
+                                    SKRect pathBounds = transformedPath.Bounds;
+                                    float centerX = pathBounds.MidX;
+
+                                    SKRect textBounds = new SKRect();
+                                    tb.TextPaint.MeasureText(tb.Text, ref textBounds);
+                                    float centerY = pathBounds.MidY + textBounds.Height / 2;
+
+                                    canvas.DrawText(tb.Text, centerX, centerY, tb.TextPaint);
+                                }
                             }
                         }
                     });
                 });
             });
-
-            var d = doc.GeneratePdf();
 
             DA.SetData(0, doc);
         }

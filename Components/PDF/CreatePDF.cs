@@ -66,24 +66,27 @@ namespace Headless.Components.PDF
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-
             List<GH_ObjectWrapper> wPath = new List<GH_ObjectWrapper>();
             string fileName = string.Empty;
-            string outputPath = string.Empty;
             bool createPreview = false;
+            string outputPath = string.Empty;
 
             if (!DA.GetData(0, ref fileName)) return;
             if (!DA.GetDataList(1, wPath)) return;
             if (!DA.GetData(2, ref createPreview)) return;
-            if (!DA.GetData(3, ref outputPath)) return;
+            DA.GetData(3, ref outputPath);
 
             var pages = wPath.Select(v => (v.Value as Document)).ToList();
 
             var pdfData = Document.Merge(pages).GeneratePdf();
             string base64String = Convert.ToBase64String(pdfData);
             
-            string path = Path.Combine(outputPath, fileName + ".pdf");
+            string path = String.Empty;
+            if (outputPath == string.Empty | outputPath == null)
+            {
+                outputPath = Path.GetTempPath();
+            }
+            path = Path.Combine(outputPath, fileName + ".pdf");
 
             //Create file object
             var fileData = new FileData()
