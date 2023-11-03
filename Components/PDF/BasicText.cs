@@ -8,14 +8,14 @@ using SkiaSharp;
 
 namespace Headless.Components.PDF
 {
-    public class PdfText : GH_Component
+    public class BasicText : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
-        public PdfText()
-          : base("PdfText", "PT",
-              "Description",
+        public BasicText()
+          : base("BasicText", "BT",
+              "Add text to the page. The difference between text blob is that this text will be not scaled with the paths",
               "Headless", "PDF")
 
         {
@@ -27,7 +27,7 @@ namespace Headless.Components.PDF
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("Text", "T", "Text to be written", GH_ParamAccess.item );
-            pManager.AddGenericParameter("Text Style", "TS", "Text Style", GH_ParamAccess.item);
+            pManager.AddGenericParameter("TextStyle", "TS", "Text Style", GH_ParamAccess.item);
             pManager.AddNumberParameter("TextFromTop", "TFT", "Text From Top", GH_ParamAccess.item, 0.0);
             pManager.AddNumberParameter("TextFromLeft", "TFL", "Text From Left", GH_ParamAccess.item, 0.0);
         }
@@ -77,6 +77,8 @@ namespace Headless.Components.PDF
                 return null;
             }
         }
+        
+        public override GH_Exposure Exposure => GH_Exposure.secondary;
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.

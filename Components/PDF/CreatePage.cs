@@ -18,8 +18,8 @@ namespace Headless.Components.PDF
         /// Initializes a new instance of the CreatePage class.
         /// </summary>
         public CreatePage()
-            : base("CreatePage", "Nickname",
-                "Description",
+            : base("Page", "P",
+                "Creates a basic PDF page",
                 "Headless", "PDF")
         {
         }
@@ -29,14 +29,14 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("Page Tile", "PT", "", GH_ParamAccess.item, "");
-            pManager.AddGenericParameter("Paths", "CD", "Paths for the page -> They get scaled all together to fit on the page canvas", GH_ParamAccess.list);
-            pManager.AddGenericParameter("TextPath", "TB", "A text that will be scaled together with the paths so that they end up in the same position as the scaled and transformed paths", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Height", "H", "Page height", GH_ParamAccess.item, 1000);
-            pManager.AddNumberParameter("Width", "W", "Page width", GH_ParamAccess.item, 1000);
-            pManager.AddNumberParameter("PageMargin", "PM", "Margin on the sides in mm", GH_ParamAccess.item, 10);
+            pManager.AddTextParameter("PageTile", "PT", "Title that the page should have", GH_ParamAccess.item, "");
             pManager.AddNumberParameter("TitleSize", "TS", "Size for title", GH_ParamAccess.item, 30);
-            pManager.AddGenericParameter("Text", "t", "Normal text to add to the page", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Path", "CD", "Paths for the page -> They get scaled all together to fit on the page canvas", GH_ParamAccess.list);
+            pManager.AddGenericParameter("TextBlob", "TB", "A text that will be scaled together with the paths so that they end up in the same position as the scaled and transformed paths", GH_ParamAccess.list);
+            pManager.AddGenericParameter("BasicText", "T", "Normal text to add to the page", GH_ParamAccess.list);
+            pManager.AddNumberParameter("PageHeight", "H", "Page height", GH_ParamAccess.item, 1000);
+            pManager.AddNumberParameter("PageWidth", "W", "Page width", GH_ParamAccess.item, 1000);
+            pManager.AddNumberParameter("PageMargin", "PM", "Margin on the sides in mm", GH_ParamAccess.item, 10);
             
             pManager[1].Optional = true;
             pManager[2].Optional = true;
@@ -61,7 +61,7 @@ namespace Headless.Components.PDF
 
             string pageTile = string.Empty;
             double height = 1000;
-            double widht = 1000;
+            double width = 1000;
             double margin = 10;
             double titleSize = 30;
 
@@ -69,14 +69,14 @@ namespace Headless.Components.PDF
             List<GH_ObjectWrapper> textBlobObjects = new List<GH_ObjectWrapper>();
             List<GH_ObjectWrapper> textObject = new List<GH_ObjectWrapper>();
             
-            if (!DA.GetData(0, ref pageTile)) return;
-            DA.GetDataList(1, curveDataObjects);
-            DA.GetDataList(2, textBlobObjects);
-            if (!DA.GetData(3, ref height)) return;
-            if (!DA.GetData(4, ref widht)) return;
-            if (!DA.GetData(5, ref margin)) return;
-            if (!DA.GetData(6, ref titleSize)) return;
-            DA.GetDataList(7, textObject);
+            if (!DA.GetData("PageTile", ref pageTile)) return;
+            if (!DA.GetData("TitleSize", ref titleSize)) return;
+            DA.GetDataList("BasicText", textObject);
+            DA.GetDataList("Path", curveDataObjects);
+            DA.GetDataList("TextBlob", textBlobObjects);
+            if (!DA.GetData("PageHeight", ref height)) return;
+            if (!DA.GetData("PageWidth", ref width)) return;
+            if (!DA.GetData("PageMargin", ref margin)) return;
             
             // Convert data to the desired types
             var pathData = curveDataObjects.Select(v => v.Value as SkiaCurveData).ToList();
@@ -87,7 +87,7 @@ namespace Headless.Components.PDF
             {
                 document.Page(pg =>
                 {
-                    pg.Size(Convert.ToSingle(widht),Convert.ToSingle(height), Unit.Millimetre);
+                    pg.Size(Convert.ToSingle(width),Convert.ToSingle(height), Unit.Millimetre);
 
                     if (pageTile != string.Empty | pageTile != "")
                     {
@@ -191,6 +191,8 @@ namespace Headless.Components.PDF
                 return null;
             }
         }
+
+        public override GH_Exposure Exposure => GH_Exposure.primary;
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.

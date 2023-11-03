@@ -7,14 +7,14 @@ using SkiaSharp;
 
 namespace Headless.Components.PDF
 {
-    public class CreatePathStyle : GH_Component
+    public class PathStyle : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the PathStyle class.
         /// </summary>
-        public CreatePathStyle()
-            : base("PathStyle", "Nickname",
-                "Description",
+        public PathStyle()
+            : base("PathStyle", "PS",
+                "Creates the style for the path",
                 "Headless", "PDF")
         {
         }
@@ -88,6 +88,8 @@ namespace Headless.Components.PDF
                 return null;
             }
         }
+        
+        public override GH_Exposure Exposure => GH_Exposure.tertiary;
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.

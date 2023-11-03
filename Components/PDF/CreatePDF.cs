@@ -49,6 +49,7 @@ namespace Headless.Components.PDF
             
             pManager[3].Optional = true;
         }
+        public override GH_Exposure Exposure => GH_Exposure.primary;
 
         /// <summary>
         /// Registers all the output parameters for this component.

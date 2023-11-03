@@ -8,13 +8,13 @@ using Rhino.Geometry;
 
 namespace Headless.Components.PDF
 {
-    public class PageSitze : GH_Component
+    public class PageSize : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the PageSitze class.
         /// </summary>
-        public PageSitze()
-            : base("PageSitze", "Nickname",
+        public PageSize()
+            : base("PageSize", "Nickname",
                 "Description",
                 "Headless", "PDF")
         {
@@ -78,6 +78,8 @@ namespace Headless.Components.PDF
                 return null;
             }
         }
+        
+        public override GH_Exposure Exposure => GH_Exposure.tertiary;
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.

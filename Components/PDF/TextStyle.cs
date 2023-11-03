@@ -7,14 +7,14 @@ using SkiaSharp;
 
 namespace Headless.Components.PDF
 {
-    public class TextElement : GH_Component
+    public class TextStyle : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the TextElement class.
         /// </summary>
-        public TextElement()
-          : base("TextElement", "Nickname",
-              "Description",
+        public TextStyle()
+          : base("TextStyle", "TS",
+              "Component for styling pdf text",
               "Headless", "PDF")
         {
         }
@@ -36,7 +36,7 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("TextBlob", "TB", "Text Blob", GH_ParamAccess.item);
+            pManager.AddGenericParameter("TextStyle", "TB", "Text Blob", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -92,6 +92,8 @@ namespace Headless.Components.PDF
                 return null;
             }
         }
+        
+        public override GH_Exposure Exposure => GH_Exposure.tertiary;
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.

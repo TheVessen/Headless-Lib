@@ -12,7 +12,7 @@ namespace Headless.Components.PDF
         /// Initializes a new instance of the CreatePath class.
         /// </summary>
         public CreatePath()
-            : base("CreatePath", "CP",
+            : base("Path", "CP",
                 "Converts lines and curves to paths",
                 "Headless", "PDF")
         {
@@ -91,6 +91,8 @@ namespace Headless.Components.PDF
                 return null;
             }
         }
+        
+        public override GH_Exposure Exposure => GH_Exposure.secondary;
 
         /// <summary>
         /// Gets the unique ID for this component. Do not change this ID after release.
