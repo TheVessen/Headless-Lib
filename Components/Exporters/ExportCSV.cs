@@ -9,13 +9,13 @@ using Rhino.Geometry;
 
 namespace Headless.Components.Exporters
 {
-    public class ExportCSVString : GH_Component
+    public class ExportCSV : GH_Component
     {
         /// <summary>
         /// Initializes a new instance of the ExportCSVString class.
         /// </summary>
-        public ExportCSVString()
-          : base("ExportCSVString", "ECSV",
+        public ExportCSV()
+          : base("ExportCSV", "ECS",
               "Exports a csv string to base64",
               "Headless", "Output")
         {
@@ -26,7 +26,7 @@ namespace Headless.Components.Exporters
         /// </summary>
         public override void CreateAttributes()
         {
-            m_attributes = new NoOutputComponent<ExportCSVString>(this);
+            m_attributes = new NoOutputComponent<ExportCSV>(this);
         }
 
         /// <summary>

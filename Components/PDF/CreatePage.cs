@@ -38,9 +38,9 @@ namespace Headless.Components.PDF
             pManager.AddNumberParameter("PageWidth", "W", "Page width", GH_ParamAccess.item, 1000);
             pManager.AddNumberParameter("PageMargin", "PM", "Margin on the sides in mm", GH_ParamAccess.item, 10);
             
-            pManager[1].Optional = true;
             pManager[2].Optional = true;
-            pManager[7].Optional = true;
+            pManager[3].Optional = true;
+            pManager[4].Optional = true;
         }
 
         /// <summary>
