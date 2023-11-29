@@ -18,6 +18,8 @@ namespace Headless.Components.PDF
         {
         }
 
+        
+
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
@@ -43,6 +45,8 @@ namespace Headless.Components.PDF
         {
             Curve curve = null;
             SKPaint paint = null;
+
+  
 
             if (!DA.GetData(0, ref curve)) return;
             if (!DA.GetData(1, ref paint)) return;

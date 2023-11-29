@@ -142,8 +142,22 @@ namespace Headless.Components.Exporters
                 //Add geo to doc
                 doc.Objects.Add(geo, att);
 
+                string base64String = string.Empty;
 
-                string base64String =  Helpers.docToBase64(doc, fileEnding);
+                if (fileEnding == ".3dm")
+                {
+                    base64String = Helpers.docToRhinoFile(doc, fileEnding);
+                }
+                else
+                {
+
+                    base64String =  Helpers.docToBase64(doc, fileEnding);
+                }
+
+                if (string.IsNullOrEmpty(base64String))
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Could not export file");
+                }
 
                 FileData fileData = new FileData()
                 {

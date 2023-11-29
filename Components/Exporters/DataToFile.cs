@@ -118,7 +118,24 @@ namespace Headless.Components.Exporters
                 }
             }
 
-            string base64String = Helpers.docToBase64(doc, fileEnding);
+            string base64String = string.Empty;
+
+            if (fileEnding == ".3dm")
+            {
+                base64String = Helpers.docToRhinoFile(doc, fileEnding);
+            }
+            else
+            {
+
+                base64String = Helpers.docToBase64(doc, fileEnding);
+            }
+
+
+            if (string.IsNullOrEmpty(base64String))
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Could not export file");
+            }
+
             FileData fileData = new FileData() { FileName = fileName, Base64String = base64String, FileType = fileEnding };
             string b64File = JsonConvert.SerializeObject(fileData);
             DA.SetData(0, b64File);

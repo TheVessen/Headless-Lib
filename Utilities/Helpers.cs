@@ -11,7 +11,8 @@ using Grasshopper;
 using System.Drawing.Drawing2D;
 using Grasshopper.Kernel.Attributes;
 using ClosedXML.Excel;
-
+using System.ComponentModel.Composition.Primitives;
+using System.Security.RightsManagement;
 
 namespace Headless.Utilities
 {
@@ -25,6 +26,40 @@ namespace Headless.Utilities
             try
             {
                 doc.Export(tempPath);
+
+                if (!File.Exists(tempPath))
+                    throw new Exception("Failed to export the document.");
+
+                string base64String;
+                using (FileStream fileStream = new FileStream(tempPath, FileMode.Open, FileAccess.Read))
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    fileStream.CopyTo(memoryStream);
+                    base64String = Convert.ToBase64String(memoryStream.ToArray());
+                }
+
+                return base64String;
+            }
+            catch (Exception ex)
+            {
+                // Log or rethrow the exception as appropriate
+                throw new Exception("An error occurred while converting doc to Base64", ex);
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                    File.Delete(tempPath);
+            }
+        }
+
+        public static string docToRhinoFile(RhinoDoc doc, string fileEnding)
+        {
+            string tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + fileEnding);
+
+            try
+            {
+
+                doc.SaveAs(tempPath, 7);
 
                 if (!File.Exists(tempPath))
                     throw new Exception("Failed to export the document.");
