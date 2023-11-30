@@ -36,8 +36,7 @@
     <PackageReference Include="QuestPDF" Version="2023.9.1" />
     <PackageReference Include="System.Resources.Extensions" Version="8.0.0-rc.2.23479.6" />
   </ItemGroup>
-  
-  <ItemGroup>
+  s
     <EmbeddedResource Update="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
