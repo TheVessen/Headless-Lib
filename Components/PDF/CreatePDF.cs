@@ -40,12 +40,12 @@ namespace Headless.Components.PDF
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddTextParameter("PDF Name", "PN", "Name of the PDF that should be used to download later",
+            pManager.AddTextParameter("PdfName", "PN", "Name of the PDF that should be used to download later",
                 GH_ParamAccess.item);
             pManager.AddGenericParameter("Pages", "P", "Page", GH_ParamAccess.list);
-            pManager.AddBooleanParameter("Create Preview", "CP", "Create a preview of the PDF document",
+            pManager.AddBooleanParameter("CreatePreview", "CP", "Create a preview of the PDF document",
                 GH_ParamAccess.item, false);
-            pManager.AddTextParameter("Document path", "DP", "Path to the document", GH_ParamAccess.item);
+            pManager.AddTextParameter("DocumentPath", "DP", "Path to the document", GH_ParamAccess.item);
             
             pManager[3].Optional = true;
         }

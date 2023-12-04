@@ -49,7 +49,7 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddTextParameter("Files", "F", "Files", GH_ParamAccess.list);
+            pManager.AddTextParameter("Base64", "B64", "Files", GH_ParamAccess.list);
         }
 
         /// <summary>
