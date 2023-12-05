@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Headless.Utilities;
 using System.Collections;
+using System.Drawing;
 using Grasshopper.Documentation;
 using Headless.Lib;
 
@@ -40,8 +41,9 @@ namespace Headless.Components.Exporters
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.tree);
-            pManager.AddGenericParameter("Attributes", "A", "Attributes of the geometry", GH_ParamAccess.tree);
+            pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.list);
+            pManager.AddTextParameter("LayerNames", "L", "Names of the layers", GH_ParamAccess.list);
+            pManager.AddColourParameter("LayerColors", "C", "Colors of the layers", GH_ParamAccess.list);
             pManager.AddTextParameter("FileName", "N", "Name of the File per List 1", GH_ParamAccess.item);
             pManager.AddTextParameter("FileEnding", "E", "File ending of the geometry", GH_ParamAccess.item, ".3dm");
         }
@@ -61,61 +63,57 @@ namespace Headless.Components.Exporters
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             // Initialize vars to store the data from DA
-            GH_Structure<IGH_GeometricGoo> geometryList;
-            GH_Structure<IGH_Goo> objectAttributesList;
+            List<IGH_GeometricGoo> geometryList = new List<IGH_GeometricGoo>();
+            List<GH_String> layerNamesList = new List<GH_String>();
+            List<GH_Colour> layerColorsList = new List<GH_Colour>();
             string fileName = string.Empty;
             string fileEnding = string.Empty;
 
             // Retrieve the data from input parameters
-            if (!RetrieveData(DA, 0, out  geometryList)) return;
-            if (!RetrieveData(DA, 1, out objectAttributesList)) return;
-            if (!RetrieveData(DA, 2, out  fileName)) return;
-            if (!RetrieveData(DA, 3, out fileEnding)) return;
+            if (!DA.GetDataList(0, geometryList)) return;
+            if (!DA.GetDataList(1, layerNamesList)) return;
+            if (!DA.GetDataList(2, layerColorsList)) return;
+            if (!DA.GetData(3, ref fileName)) return;
+            if (!DA.GetData(4, ref fileEnding)) return;
 
             // Create headless doc
             RhinoDoc doc = RhinoDoc.CreateHeadless(null);
 
-
-            // Check attribute count validity
-            List<IGH_Goo> allAttributes = objectAttributesList.AllData(true).ToList();
-            if (allAttributes.Count != 1 && allAttributes.Count != geometryList.PathCount)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The attribute count has to match the amount of geometries in a list or be 1");
-                return;
-            }
-
             // Iterate over geometries
-            foreach (var path in geometryList.Paths)
+            for (int i = 0; i < geometryList.Count; i++)
             {
-                List<IGH_GeometricGoo> currentBranchGeo = geometryList.get_Branch(path).Cast<IGH_GeometricGoo>().ToList();
-                List<IGH_Goo> currentBranchAttributes = objectAttributesList.get_Branch(path).Cast<IGH_Goo>().ToList();
+                var geoGoo = geometryList[i];
 
-                ObjectAttributes atb = (currentBranchAttributes.Count == 1) ? currentBranchAttributes[0].ScriptVariable() as ObjectAttributes : null;
-
-                foreach (var geoGoo in currentBranchGeo)
+                // Handle layer names
+                string layerName = "Default";
+                if (i < layerNamesList.Count && layerNamesList[i] != null)
                 {
-                    GeometryBase geo = geoGoo.ScriptVariable() as GeometryBase;
-
-                    if (atb == null && allAttributes.Count == 1)
-                    {
-                        atb = allAttributes[0].ScriptVariable() as ObjectAttributes;
-                    }
-
-                    if (atb != null)
-                    {
-                        Layer layer = new Layer()
-                        {
-                            Color = atb.ObjectColor,
-                            PlotColor = atb.PlotColor,
-                            Name = atb.Name
-                        };
-
-                        int layerIndex = doc.Layers.Add(layer);
-                        atb.LayerIndex = layerIndex;
-                    }
-
-                    doc.Objects.Add(geo, atb);
+                    layerName = layerNamesList[i].Value;
                 }
+
+                // Handle layer colors
+                Color layerColor = Color.Black;
+                if (i < layerColorsList.Count && layerColorsList[i] != null)
+                {
+                    layerColor = layerColorsList[i].Value;
+                }
+
+                Layer layer = new Layer()
+                {
+                    Name = layerName,
+                    Color = layerColor
+                };
+
+                int layerIndex = doc.Layers.Add(layer);
+
+                GeometryBase geo = geoGoo.ScriptVariable() as GeometryBase;
+
+                ObjectAttributes atb = new ObjectAttributes
+                {
+                    LayerIndex = layerIndex
+                };
+
+                doc.Objects.Add(geo, atb);
             }
 
             string base64String = string.Empty;

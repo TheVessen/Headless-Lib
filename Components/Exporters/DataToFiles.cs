@@ -7,6 +7,7 @@ using Rhino.DocObjects;
 using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using Headless.Lib;
 using Headless.Utilities;
@@ -39,9 +40,10 @@ namespace Headless.Components.Exporters
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddGeometryParameter("Geometry", "G", "Geometry to be exported", GH_ParamAccess.tree);
-            pManager.AddGenericParameter("Attributes", "A", "Attributes of the geometry", GH_ParamAccess.tree);
+            pManager.AddTextParameter("LayerNames", "L", "Names of the layers", GH_ParamAccess.tree);
+            pManager.AddColourParameter("LayerColors", "C", "Colors of the layers", GH_ParamAccess.tree);
             pManager.AddTextParameter("FileNames", "F", "File names of the geometry", GH_ParamAccess.tree);
-            pManager.AddTextParameter("FileEnding", "E", "File ending of the geometry", GH_ParamAccess.item, ".3dm");
+            pManager.AddTextParameter("FileEnding", "E", "File ending of the geometry", GH_ParamAccess.item, ".3dm"); 
         }
 
         /// <summary>
@@ -58,88 +60,79 @@ namespace Headless.Components.Exporters
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            
             //Set index
             const int geometryParamIndex = 0;
-            const int attributesParamIndex = 1;
-            const int filenameParamIndex = 2;
-            const int fileendingParamIndex = 3;
+            const int layerNamesParamIndex = 1;
+            const int layerColorsParamIndex = 2;
+            const int filenameParamIndex = 3;
+            const int fileendingParamIndex = 4;
 
             // Initialize ref vars
             GH_Structure<IGH_GeometricGoo> geometryTree;
-            GH_Structure<IGH_Goo> attributesTree;
+            GH_Structure<GH_String> layerNamesTree;
+            GH_Structure<GH_Colour> layerColorsTree;
             GH_Structure<GH_String> fileNameTree;
             string fileEnding = string.Empty;
 
             // Retrieve the data from the input parameters
             if (!DA.GetDataTree(geometryParamIndex, out geometryTree)) return; 
-            if (!DA.GetDataTree(attributesParamIndex, out attributesTree)) return; 
+            if (!DA.GetDataTree(layerNamesParamIndex, out layerNamesTree)) return; 
+            if (!DA.GetDataTree(layerColorsParamIndex, out layerColorsTree)) return; 
             if (!DA.GetDataTree(filenameParamIndex, out fileNameTree)) return; 
             if (!DA.GetData(fileendingParamIndex, ref fileEnding)) return; 
-
-            // Convert trees to lists
-            List<IGH_GeometricGoo> allGeo = geometryTree.AllData(true).OfType<IGH_GeometricGoo>().ToList();
-
-            List<object> converterTree = attributesTree.AllData(true)
-                .Select(goo => goo.ScriptVariable())
+            
+            
+            
+            List<Color> allLayerColors = layerColorsTree.AllData(true)
+                .Select(ghcol => ghcol is GH_Colour colorItem ? colorItem.Value : Color.Black)
                 .ToList();
-
+            List<string> allFileNames = fileNameTree.AllData(true)
+                .Select(ghstr => (ghstr as GH_String)?.Value)
+                .Where(s => s != null)
+                .ToList();
+            List<IGH_GeometricGoo> allGeo = geometryTree.AllData(true).OfType<IGH_GeometricGoo>().ToList();
+            List<string> allLayerNames = layerNamesTree.AllData(true)
+                .Select(ghstr => (ghstr as GH_String)?.Value)
+                .Where(s => s != null)
+                .ToList();
             List<string> allStrings = fileNameTree.AllData(true)
                 .Select(ghstr => (ghstr as GH_String)?.Value)
                 .Where(s => s != null)
                 .ToList();
 
-            // Convert the generic objects to ObjectAttributes
-            List<ObjectAttributes> allAttributes = converterTree.OfType<ObjectAttributes>().ToList();
-
             //List of json docs
             List<string> documents = new List<string>();
-
-            if (allAttributes.Count != 1 && allAttributes.Count != allGeo.Count)
-            {
-                this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "The attribute count has to match the amount of geometries in a list or 1");
-                return;
-            }
-
+            
             //Loop though all geo items
             for (int i = 0; i < allGeo.Count; i++)
             {
-                //Create a headless doc
-                string docName = string.Empty;
-
                 RhinoDoc doc = RhinoDoc.CreateHeadless(null);
-
                 GeometryBase geo = allGeo[i].ScriptVariable() as GeometryBase;
-                ObjectAttributes att;
-                if (allAttributes.Count == 1)
+
+                string layerName = allLayerNames.Count > i ? allLayerNames[i] : "Default";
+                Color layerColor = allLayerColors.Count > i ? allLayerColors[i] : Color.Black;
+
+                Layer layer = new Layer()
                 {
-                    att = allAttributes[0];
-                }
-                else
+                    Name = layerName,
+                    Color = layerColor
+                };
+
+                int layerIndex = doc.Layers.Add(layer);
+
+                ObjectAttributes att = new ObjectAttributes
                 {
-                    att = allAttributes[i];
-                }
-                if (geo == null || att == null)
+                    LayerIndex = layerIndex
+                };
+
+                if (geo == null)
                 {
-                    string msg = "Had problems finding geo or att";
+                    string msg = "Had problems finding geo";
                     this.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
                     return;
                 }
 
-                //Create current layer get name an color from attribute
-                Layer layer = new Layer()
-                {
-                    Name = att.Name,
-                    PlotColor = att.PlotColor,
-                    Color = att.PlotColor
-                };
-
-                //Add layer to doc and get index to assign to object attribute
-                int layerIndex = doc.Layers.Add(layer);
-
-                //Set layer index to attribute
-                att.LayerIndex = layerIndex;
-
-                //Add geo to doc
                 doc.Objects.Add(geo, att);
 
                 string base64String = string.Empty;
