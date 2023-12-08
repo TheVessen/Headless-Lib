@@ -33,7 +33,7 @@
     <PackageReference Include="ClosedXML" Version="0.102.1" />
     <PackageReference Include="Grasshopper" Version="7.32.23221.10241" IncludeAssets="compile;build" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="QuestPDF" Version="2023.9.1" />
+    <PackageReference Include="QuestPDF" Version="2023.10.2" />
     <PackageReference Include="System.Resources.Extensions" Version="8.0.0-rc.2.23479.6" />
   </ItemGroup>
   

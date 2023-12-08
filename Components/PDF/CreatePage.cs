@@ -91,18 +91,19 @@ namespace Headless.Components.PDF
 
                     if (pageTile != string.Empty | pageTile != "")
                     {
-                        pg.Header().Text(textTitle =>
-                        {
-                            textTitle.Span(pageTile)
-                                .FontSize(Convert.ToSingle(titleSize)).FontColor(Colors.Black);
-                        });
+                        AddPageHeader(pg, pageTile);
                     }
                     
-
-                    pg.Margin(Convert.ToSingle(margin), Unit.Millimetre);
-                    
-                    pg.Content().Canvas((canvas, space) =>
+                    pg.Footer().PaddingBottom(5, Unit.Millimetre).AlignCenter().Text(text =>
                     {
+                        text.CurrentPageNumber();
+                        text.Span(" / ");
+                        text.TotalPages();
+                    });
+                    
+                    pg.Content().Padding(Convert.ToSingle(margin), Unit.Millimetre).Canvas((canvas, space) =>
+                    {
+                        
                         // Calculate the combined bounding box of all paths.
                         SKRect combinedBounds = new SKRect();
                         foreach (var curveData in pathData)
@@ -178,6 +179,25 @@ namespace Headless.Components.PDF
 
             DA.SetData(0, doc);
         }
+        public static void AddPageHeader(PageDescriptor page, string title)
+        {
+            var textStyle = new QuestPDF.Infrastructure.TextStyle();
+            textStyle.FontSize(16);
+            page.Header().MinHeight(1, Unit.Centimetre).Background(Colors.Grey.Lighten3).Padding(6)
+                .DefaultTextStyle(textStyle).Table(table =>
+                {
+                    table.ColumnsDefinition(cols =>
+                    {
+                        cols.RelativeColumn();
+                        cols.RelativeColumn();
+                    });
+                    table.Cell().Row(1).Column(1).Text(title).FontSize(18).Bold();
+                    table.Cell().Row(1).Column(2).AlignRight()
+                        .Text(String.Concat(System.DateTime.Now.ToString("dd.MM.yyyy"), "  ",
+                            System.DateTime.Now.ToString("HH:m"))).FontSize(16);
+                });
+        }
+
 
         /// <summary>
         /// Provides an Icon for the component.

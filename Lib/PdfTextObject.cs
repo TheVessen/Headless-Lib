@@ -1,5 +1,9 @@
 ﻿using System;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using SkiaSharp;
+
 
 namespace Headless.Lib
 {
@@ -25,6 +29,8 @@ namespace Headless.Lib
             TextFromTop = textFromTop;
             TextFromLeft = textFromLeft;
         }
+        
+       
         
     }
 }
