@@ -27,10 +27,16 @@ namespace Headless.Components.Display
 
         public class ThreeDisplay
         {
-            public Mesh geometry { get; set; }
             public Color material { get; set; }
+            public ThreeJsMeshData meshData { get; set; }
             public int id { get; set; }
 
+        }
+        
+        public class ThreeJsMeshData
+        {
+            public List<double> Vertices { get; set; }
+            public List<int> Faces { get; set; }
         }
 
         /// <summary>
@@ -118,7 +124,8 @@ namespace Headless.Components.Display
             {
                 this.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No meshes to convert");
             }
-
+            
+            
             List<Color> allColors = color.AllData(true)
             .OfType<GH_Colour>()  // Ensure the item is of type GH_Colour.
             .Select(ghColour => ghColour.Value)  // Access the Value property.
@@ -129,11 +136,16 @@ namespace Headless.Components.Display
             List<GH_Mesh> previewMeshList = new List<GH_Mesh>();
 
             //convert to string and create preview
-            foreach (Mesh m in meshes)
+            foreach (Mesh mesh in meshes)
             {
+                
                 ThreeDisplay threeDisplay = new ThreeDisplay();
-                threeDisplay.geometry = m;
-                Mesh previewMesh = m.DuplicateMesh();
+                var vertices = new List<double>();
+                var faces = new List<int>();
+                
+                Mesh previewMesh = mesh.DuplicateMesh();
+                
+                //Create a preview for grasshopper
                 if (allColors.Count == 1)
                 {
                     threeDisplay.material = allColors[0];
@@ -153,6 +165,42 @@ namespace Headless.Components.Display
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Number of colors must be 1 or equal to number of meshes");
                 }
                 threeDisplay.id = counter;
+                
+                //Create the mesh data
+                foreach (var vertex in mesh.Vertices)
+                {
+                    vertices.Add(vertex.X);
+                    vertices.Add(vertex.Y);
+                    vertices.Add(vertex.Z);
+                }
+
+                foreach (var face in mesh.Faces)
+                {
+                    if (face.IsQuad)
+                    {
+                        // First triangle
+                        faces.Add(face.A);
+                        faces.Add(face.B);
+                        faces.Add(face.C);
+
+                        // Second triangle
+                        faces.Add(face.C);
+                        faces.Add(face.D);
+                        faces.Add(face.A);
+                    }
+                    else if (face.IsTriangle)
+                    {
+                        faces.Add(face.A);
+                        faces.Add(face.B);
+                        faces.Add(face.C);
+                    }
+                }
+                
+                ThreeJsMeshData threeJsMeshData = new ThreeJsMeshData();
+                threeJsMeshData.Vertices = vertices;
+                threeJsMeshData.Faces = faces;
+                threeDisplay.meshData = threeJsMeshData;
+
                 string obj = Newtonsoft.Json.JsonConvert.SerializeObject(threeDisplay);
                 threeDisplays.Add(obj);
                 counter++;
